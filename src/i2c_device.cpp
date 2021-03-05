@@ -2,13 +2,15 @@
 
 I2C_Device::I2C_Device(byte address, byte bufferSize)
 : address(address)
-, bytesToSend(bufferSize)
+, bytesToSend({new byte[bufferSize], bufferSize})
 , currentSendBufferSize(0)
-, bytesReceived(bufferSize)
+, bytesReceived({new byte[bufferSize], bufferSize})
 , currentReceivedBufferSize(0) {}
 
-// I2C_Device::~I2C_Device() {
-// }
+I2C_Device::~I2C_Device() {
+    delete[] bytesToSend.data;
+    delete[] bytesReceived.data;
+}
 
 Status I2C_Device::send() {
     // send address

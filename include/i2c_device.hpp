@@ -12,15 +12,6 @@ class I2C_Device;
 struct Buffer {
     byte* data;
     byte size;
-    private:
-        Buffer(byte size) : size(size) {
-            data = new byte[size];
-        }
-        friend class I2C_Device;
-    public:
-        ~Buffer() {
-            delete[] data;
-        }
 };
 
 enum class Status {
