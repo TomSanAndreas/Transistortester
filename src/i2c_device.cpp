@@ -53,6 +53,7 @@ Status I2C_Device::queue(const Buffer& b) {
 }
 
 const Buffer& I2C_Device::read() {
+    currentReceivedBufferSize = 0;
     return bytesReceived;
 }
 

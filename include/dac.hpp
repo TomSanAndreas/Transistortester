@@ -10,8 +10,7 @@
 #define MAX_VOLTAGE 4960  // VCC - 0.04
 #endif
 
-typedef unsigned short Voltage; // is always between 0 and 65535, max voltage is 4960
-                                // because of the limitation, only the lower 12 bits are used
+class Probe;
 
 enum class DAC_Address {
     A0 = 0b1100000,
@@ -21,9 +20,11 @@ enum class DAC_Address {
 
 class DAC : public I2C_Device {
     private:
-        Voltage currentVoltage = MIN_VOLTAGE;
-    public:
+        UVoltage currentVoltage = MIN_VOLTAGE;
         DAC(DAC_Address);
+
+        friend class Probe;
+    public:
         ~DAC();
-        void setVoltage(Voltage voltage);
+        void setVoltage(UVoltage voltage);
 };
