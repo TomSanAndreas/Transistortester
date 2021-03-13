@@ -18,7 +18,7 @@ I2C_Device::I2C_Device(byte address, byte bufferSize)
         debugStatus |= (uint64_t) Status::NoResponse | (uint64_t) Status::Error;
         printStatus();
     } else {
-        std::cout << "Apparaat 0x" << std::hex << address << " succesvol geinitialiseerd!\n";
+        std::cout << "Apparaat 0x" << std::hex << (uint64_t) address << " succesvol geinitialiseerd!\n";
     }
     #endif
 }
@@ -63,13 +63,13 @@ const Buffer& I2C_Device::readResponse() {
 #ifdef DEBUG_ACTIVE
 void I2C_Device::printStatus() {
     if (debugStatus & (uint64_t) Status::Error) {
-        std::cout << "An other error has occurred with device 0x" << std::hex << address << "\n";
+        std::cout << "An other error has occurred with device 0x" << std::hex << (uint64_t) address << "\n";
     }
     if (debugStatus & (uint64_t) Status::BufferOverflow) {
-        std::cout << "A buffer overflow has occurred with device 0x" << std::hex << address << "\n";
+        std::cout << "A buffer overflow has occurred with device 0x" << std::hex << (uint64_t) address << "\n";
     }
     if (debugStatus & (uint64_t) Status::NoResponse) {
-        std::cout << "Device 0x" << std::hex << address << " has not responded.\n";
+        std::cout << "Device 0x" << std::hex << (uint64_t) address << " has not responded.\n";
     }
     // reset status
     debugStatus = 0;

@@ -18,9 +18,9 @@
 class Probe;
 
 enum class INA_Address {
-    INA1 = 0b1000000,
-    INA2 = 0b1000001,
-    INA3 = 0b1000100
+    INA1 = 0b1000001,
+    INA2 = 0b1000100,
+    INA3 = 0b1000000
 };
 
 class INA : public I2C_Device {

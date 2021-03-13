@@ -2,7 +2,7 @@
 typedef unsigned char byte;
 
 #define DEBUG_ACTIVE 1
-// #define USING_RPI 1
+#define USING_RPI 1
 
 #ifdef DEBUG_ACTIVE
 #include <iostream>
