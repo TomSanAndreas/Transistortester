@@ -26,5 +26,6 @@ class DAC : public I2C_Device {
         friend class Probe;
     public:
         ~DAC();
+        //TODO: kalibratiewaarde opstellen: 4095 is MAX_VOLTAGE, maar is dan automatisch gelijkgesteld aan de voedingsspanning (ong 5.2V): eerst DAC's op maximum zetten en in de probe via de INA de spanning nameten om zo een correcte schaal te gebruiken
         void setVoltage(UVoltage voltage);
 };
