@@ -15,8 +15,8 @@ Current INA::readCurrent() {
     queue({ registerByte, 1 });
     send();
     // now read from MFR_READ_VSHUNT register
-    sendAndAwait();
-    const Buffer& received = read();
+    sendAndAwait(2);
+    const Buffer& received = readResponse();
     // FIXME indices might be inverted, description and diagram aren't consistent on page 20
     short receivedData = (received.data[1] << 8) | received.data[0];
     Voltage shuntMicroVoltage = receivedData * 2.5;
@@ -30,8 +30,8 @@ UVoltage INA::readVoltage() {
     queue({ registerByte, 1 });
     send();
     // now read from READ_VIN register
-    sendAndAwait();
-    const Buffer& received = read();
+    sendAndAwait(2);
+    const Buffer& received = readResponse();
     // FIXME indices might be inverted, description and diagram aren't consistent on page 20
     short receivedData = (received.data[1] << 8) | received.data[0];
     return receivedData * 1.25;

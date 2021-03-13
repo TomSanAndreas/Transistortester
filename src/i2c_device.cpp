@@ -1,11 +1,27 @@
 #include "i2c_device.hpp"
+#ifdef USING_RPI
+#include <wiringPiI2C.h>
+#include <unistd.h>
+#else
+#include "PiI2CApi.hpp"
+#endif
 
 I2C_Device::I2C_Device(byte address, byte bufferSize)
 : address(address)
+, fileHandle(wiringPiI2CSetup(address))
 , bytesToSend({new byte[bufferSize], bufferSize})
 , currentSendBufferSize(0)
 , bytesReceived({new byte[bufferSize], bufferSize})
-, currentReceivedBufferSize(0) {}
+, currentReceivedBufferSize(0) {
+    #ifdef DEBUG_ACTIVE
+    if (wiringPiI2CWrite(fileHandle, 0x00) == -1) {
+        debugStatus |= (uint64_t) Status::NoResponse | (uint64_t) Status::Error;
+        printStatus();
+    } else {
+        std::cout << "Apparaat 0x" << std::hex << address << " succesvol geinitialiseerd!\n";
+    }
+    #endif
+}
 
 I2C_Device::~I2C_Device() {
     delete[] bytesToSend.data;
@@ -13,28 +29,15 @@ I2C_Device::~I2C_Device() {
 }
 
 Status I2C_Device::send() {
-    // send address
-    //TODO
-    // send all the data within the sendBuffer
-    for (byte i = 0; i < currentSendBufferSize; ++i) {
-        //TODO
-    }
+    write(fileHandle, bytesToSend.data, currentSendBufferSize);
     currentSendBufferSize = 0;
-    //TODO in case of no ACK, set status
-    //if (...)
-    #ifdef DEBUG_ACTIVE
-    debugStatus |= (uint64_t) Status::NoResponse;
-    #endif
-    return Status::NoResponse;
+    return Status::Success;
 }
 
-Status I2C_Device::sendAndAwait() {
+Status I2C_Device::sendAndAwait(byte nBytes) {
     Status s = send();
-    if (s == Status::NoResponse) {
-        return Status::NoResponse;
-    }
-    // read all the data and fill up the bytesReceived buffer
-    // ...
+    read(fileHandle, bytesReceived.data + currentReceivedBufferSize, nBytes);
+    currentReceivedBufferSize += nBytes;
     return Status::Success;
 }
 
@@ -52,7 +55,7 @@ Status I2C_Device::queue(const Buffer& b) {
     return Status::Success;
 }
 
-const Buffer& I2C_Device::read() {
+const Buffer& I2C_Device::readResponse() {
     currentReceivedBufferSize = 0;
     return bytesReceived;
 }
