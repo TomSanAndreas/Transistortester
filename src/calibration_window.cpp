@@ -6,11 +6,13 @@
 #define MIN_X 80
 #define MIN_Y 30
 
+#ifndef WINDOWS
 bool hasResized = false;
 
 void onResize(int) {
     hasResized = true;
 }
+#endif
 
 struct Label {
     unsigned int startX, startY;
@@ -113,9 +115,9 @@ namespace CalibrationWindow {
         eersteProbe = new Probe(Probe::Number[0]);
         tweedeProbe = new Probe(Probe::Number[1]);
         derdeProbe = new Probe(Probe::Number[2]);
-
+        #ifndef WINDOWS
         signal(SIGWINCH, onResize);
-
+        #endif
         int x, y;
 
         getmaxyx(stdscr, y, x);
@@ -135,6 +137,7 @@ namespace CalibrationWindow {
     }
 
     void update() {
+        #ifndef WINDOWS
         if (hasResized) {
             hasResized = false;
             endwin();
@@ -150,6 +153,7 @@ namespace CalibrationWindow {
                 initialiseScreen();
             }
         }
+        #endif
         int y, x;
         getmaxyx(stdscr, y, x);
         if (x >= MIN_X && y >= MIN_Y) {

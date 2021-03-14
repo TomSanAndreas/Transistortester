@@ -1,6 +1,14 @@
 #pragma once
 
+#include "parameters.hpp"
+
+#ifdef USE_RPI
 #include <ncurses.h>
+#else
+#ifdef WINDOWS
+#include <ncurses/ncurses.h>
+#endif
+#endif
 
 #include "probe.hpp"
 

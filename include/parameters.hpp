@@ -9,3 +9,6 @@
 
 // onderstaande DEFINE moet actief gezet worden indien de kalibratie-omgeving gewenst is. Dit heeft "ncurses" als dependency.
 #define COMPILE_WITH_CALIBRATION_WINDOW 1
+
+// onderstaande DEFINE moet actief gezet worden indien het op een Windows-computer wordt gecompileerd
+#define WINDOWS 1
