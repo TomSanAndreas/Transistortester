@@ -1,9 +1,7 @@
 #pragma once
 typedef unsigned char byte;
 
-#define DEBUG_ACTIVE 1
-#define USING_RPI 1
-
+#include "parameters.hpp"
 #ifdef DEBUG_ACTIVE
 #include <iostream>
 #endif

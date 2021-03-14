@@ -12,7 +12,11 @@ DAC::DAC(DAC_Address addr) : I2C_Device((byte) addr, 3) {
 
 DAC::~DAC() {
     // C2:C0 = 0b00x, PD1:PD0 = 0b11
+    #ifdef DEBUG_ACTIVE
     byte configBytes[] { (byte) (0b00110000 | ((MIN_VOLTAGE >> 4) & 0x0F)), (byte) MIN_VOLTAGE };
+    #else
+    byte configBytes[] { (byte) (0b00110000 | ((0 >> 4) & 0x0F)), (byte) 0 };
+    #endif
     Buffer configBuffer({configBytes, 2});
     queue(configBuffer);
     send();

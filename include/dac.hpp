@@ -20,7 +20,11 @@ enum class DAC_Address {
 
 class DAC : public I2C_Device {
     private:
+        #ifdef DEBUG_ACTIVE
         UVoltage currentVoltage = MIN_VOLTAGE;
+        #else
+        UVoltage currentVoltage = 0;
+        #endif
         DAC(DAC_Address);
 
         friend class Probe;
