@@ -3,29 +3,21 @@
 #include "dac.hpp"
 #include "ina.hpp"
 
-class Probe;
-
-struct ProbeComponenten {
-    DAC_Address dac;
-    INA_Address ina;
-    private:
-        ProbeComponenten() {}
-        ProbeComponenten(DAC_Address d, INA_Address i) : dac(d), ina(i) {}
-        friend class Probe;
-};
-
 class Probe {
     private:
         DAC dac;
         INA ina;
+        Probe(DAC_Address, INA_Address);
     public:
-        Probe(const ProbeComponenten&);
+        static void init();
+        static void destroy();
+
+        static Probe* probe;
+
         void setVoltage(UVoltage);
         UVoltage readVoltage();
         Current readCurrent();
 
         // de huidige spanning van de DAC
         UVoltage currentVoltageSet;
-        // bevat van elke probe het INA en DAC-adres
-        static ProbeComponenten Number[3];
 };

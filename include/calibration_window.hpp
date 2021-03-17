@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parameters.hpp"
+#ifdef COMPILE_WITH_CALIBRATION_WINDOW
 
 #ifdef USE_RPI
 #include <ncurses.h>
@@ -18,6 +19,5 @@ namespace CalibrationWindow {
     int sleep(long ms);
     bool shouldExit();
     void destroy();
-
-    extern Probe *eersteProbe, *tweedeProbe, *derdeProbe;
 }
+#endif

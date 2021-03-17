@@ -1,4 +1,5 @@
 #include "calibration_window.hpp"
+#ifdef COMPILE_WITH_CALIBRATION_WINDOW
 #include <signal.h>
 #include <time.h>
 #include <errno.h>
@@ -27,48 +28,28 @@ struct ProbeField {
     Label inaCurrent;
 };
 
-ProbeField probe1, probe2, probe3;
+ProbeField* probeFields;
 
 void initialiseScreen() {
     clear();
     int x, y;
     getmaxyx(stdscr, y, x);
 
-    probe1.dacVoltage.length = (x - 12) / 3 - 2;
-    probe1.inaVoltage.length = (x - 12) / 3 - 2;
-    probe1.inaCurrent.length = (x - 12) / 3 - 2;
+    uint64_t t = (x - 12) / 3 - 2;
+    uint64_t r = 5 + t;
+    for (uint8_t i = 0; i < 3; ++i) {
+        probeFields[i].dacVoltage.length = t;
+        probeFields[i].inaVoltage.length = t;
+        probeFields[i].inaCurrent.length = t;
 
-    probe1.dacVoltage.startX = 4;
-    probe1.inaVoltage.startX = 4;
-    probe1.inaCurrent.startX = 4;
+        probeFields[i].dacVoltage.startX = 4 + r * i;
+        probeFields[i].inaVoltage.startX = 4 + r * i;
+        probeFields[i].inaCurrent.startX = 4 + r * i;
 
-    probe1.dacVoltage.startY = 4;
-    probe1.inaVoltage.startY = 5;
-    probe1.inaCurrent.startY = 6;
-
-    probe2.dacVoltage.length = (x - 12) / 3 - 2;
-    probe2.inaVoltage.length = (x - 12) / 3 - 2;
-    probe2.inaCurrent.length = (x - 12) / 3 - 2;
-
-    probe2.dacVoltage.startX = 7 + (x - 12) / 3;
-    probe2.inaVoltage.startX = 7 + (x - 12) / 3;
-    probe2.inaCurrent.startX = 7 + (x - 12) / 3;
-
-    probe2.dacVoltage.startY = 4;
-    probe2.inaVoltage.startY = 5;
-    probe2.inaCurrent.startY = 6;
-
-    probe3.dacVoltage.length = (x - 12) / 3 - 2;
-    probe3.inaVoltage.length = (x - 12) / 3 - 2;
-    probe3.inaCurrent.length = (x - 12) / 3 - 2;
-
-    probe3.dacVoltage.startX = 10 + 2 * (x - 12) / 3;
-    probe3.inaVoltage.startX = 10 + 2 * (x - 12) / 3;
-    probe3.inaCurrent.startX = 10 + 2 * (x - 12) / 3;
-
-    probe3.dacVoltage.startY = 4;
-    probe3.inaVoltage.startY = 5;
-    probe3.inaCurrent.startY = 6;
+        probeFields[i].dacVoltage.startY = 4;
+        probeFields[i].inaVoltage.startY = 5;
+        probeFields[i].inaCurrent.startY = 6;
+    }
 
     WINDOW *eersteProbeScherm = newwin(5, (x - 12) / 3, 3, 3);
     box(eersteProbeScherm, 0, 0);
@@ -103,8 +84,6 @@ void initialiseScreen() {
 
 namespace CalibrationWindow {
 
-    Probe *eersteProbe, *tweedeProbe, *derdeProbe;
-
     void init() {
         initscr();
         raw();
@@ -112,9 +91,8 @@ namespace CalibrationWindow {
 
         timeout(0);
 
-        eersteProbe = new Probe(Probe::Number[0]);
-        tweedeProbe = new Probe(Probe::Number[1]);
-        derdeProbe = new Probe(Probe::Number[2]);
+        probeFields = new ProbeField[3];
+
         #ifndef WINDOWS
         signal(SIGWINCH, onResize);
         #endif
@@ -131,9 +109,7 @@ namespace CalibrationWindow {
 
     void destroy() {
         endwin();
-        delete eersteProbe;
-        delete tweedeProbe;
-        delete derdeProbe;
+        delete[] probeFields;
     }
 
     void update() {
@@ -157,26 +133,14 @@ namespace CalibrationWindow {
         int y, x;
         getmaxyx(stdscr, y, x);
         if (x >= MIN_X && y >= MIN_Y) {
-            move(probe1.dacVoltage.startY, probe1.dacVoltage.startX);
-            printw("DAC: %*d mV", probe1.dacVoltage.length - 8, eersteProbe->currentVoltageSet);
-            move(probe1.inaVoltage.startY, probe1.inaVoltage.startX);
-            printw("INA: %*d mV", probe1.inaVoltage.length - 8, eersteProbe->readVoltage());
-            move(probe1.inaCurrent.startY, probe1.inaCurrent.startX);
-            printw("%*f mA", probe1.inaCurrent.length - 3, ((float) eersteProbe->readCurrent()) / 1000);
-
-            move(probe2.dacVoltage.startY, probe2.dacVoltage.startX);
-            printw("DAC: %*d mV", probe2.dacVoltage.length - 8, tweedeProbe->currentVoltageSet);
-            move(probe2.inaVoltage.startY, probe2.inaVoltage.startX);
-            printw("INA: %*d mV", probe2.inaVoltage.length - 8, tweedeProbe->readVoltage());
-            move(probe2.inaCurrent.startY, probe2.inaCurrent.startX);
-            printw("%*f mA", probe2.inaCurrent.length - 3, ((float)tweedeProbe->readCurrent()) / 1000);
-
-            move(probe3.dacVoltage.startY, probe3.dacVoltage.startX);
-            printw("DAC: %*d mV", probe3.dacVoltage.length - 8, derdeProbe->currentVoltageSet);
-            move(probe3.inaVoltage.startY, probe3.inaVoltage.startX);
-            printw("INA: %*d mV", probe3.inaVoltage.length - 8, derdeProbe->readVoltage());
-            move(probe3.inaCurrent.startY, probe3.inaCurrent.startX);
-            printw("%*f mA", probe3.inaCurrent.length - 3, ((float) derdeProbe->readCurrent()) / 1000);
+            for (uint8_t i = 0; i < 3; ++i) {
+                move(probeFields[i].dacVoltage.startY, probeFields[i].dacVoltage.startX);
+                printw("DAC: %*d mV", probeFields[i].dacVoltage.length - 8, Probe::probe[i].currentVoltageSet);
+                move(probeFields[i].inaVoltage.startY, probeFields[i].inaVoltage.startX);
+                printw("INA: %*d mV", probeFields[i].inaVoltage.length - 8, Probe::probe[i].readVoltage());
+                move(probeFields[i].inaCurrent.startY, probeFields[i].inaCurrent.startX);
+                printw("%*f mA", probeFields[i].inaCurrent.length - 3, ((float) Probe::probe[i].readCurrent()) / 1000);
+            }
         }
     }
 
@@ -209,3 +173,4 @@ namespace CalibrationWindow {
         return false;
     }
 }
+#endif

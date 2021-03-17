@@ -1,5 +1,6 @@
 #include "parameters.hpp"
 #include <string.h>
+#include <stdio.h>
 
 #ifdef COMPILE_WITH_CALIBRATION_WINDOW
 #include "calibration_window.hpp"
@@ -14,12 +15,14 @@ int main(int argc, char** argv) {
     if (argc == 2) {
         if (strcmp(argv[1], "-k") == 0 || strcmp(argv[1], "--kalibratie") == 0) {
             #ifdef COMPILE_WITH_CALIBRATION_WINDOW
+            Probe::init();
             CalibrationWindow::init();
             while (!CalibrationWindow::shouldExit()) {
                 CalibrationWindow::update();
                 CalibrationWindow::sleep(10);
             }
             CalibrationWindow::destroy();
+            Probe::destroy();
             #else
             printf("Dit programma werd niet met het kalibratiescherm gecompileerd. Gelieve de source-code opnieuw te compileren met de COMPILE_WITH_CALIBRATION_WINDOW-vlag actief in parameters.hpp.\n");
             #endif
