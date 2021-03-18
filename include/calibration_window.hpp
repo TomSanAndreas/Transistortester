@@ -14,10 +14,11 @@
 #include "probe.hpp"
 
 namespace CalibrationWindow {
+    extern bool shouldExit;
+
     void init();
     void update();
     int sleep(long ms);
-    bool shouldExit();
     void destroy();
 }
 #endif

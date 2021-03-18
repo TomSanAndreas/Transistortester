@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
             #ifdef COMPILE_WITH_CALIBRATION_WINDOW
             Probe::init();
             CalibrationWindow::init();
-            while (!CalibrationWindow::shouldExit()) {
+            while (!CalibrationWindow::shouldExit) {
                 CalibrationWindow::update();
                 CalibrationWindow::sleep(10);
             }

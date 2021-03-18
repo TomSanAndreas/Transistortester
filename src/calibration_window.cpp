@@ -1,11 +1,18 @@
 #include "calibration_window.hpp"
 #ifdef COMPILE_WITH_CALIBRATION_WINDOW
-#include <signal.h>
-#include <time.h>
-#include <errno.h>
+#include <signal.h>// voor callbacks bij het resizen van de terminal
+#include <time.h>  // voor sleep()
+#include <errno.h> // voor sleep()
+#include <stdio.h> // voor sprintf()
+#include <string.h>// voor strlen()
 
-#define MIN_X 80
-#define MIN_Y 30
+#define MIN_X 85
+#define MIN_Y 15
+
+#define CTRL(x) ((x) & 0x1F)
+
+#define CLOSE_KEY "CTRL+X"
+#define RESET_KEY "CTRL+R"
 
 #ifndef WINDOWS
 bool hasResized = false;
@@ -15,11 +22,17 @@ void onResize(int) {
 }
 #endif
 
+struct Coordinate {
+    unsigned int x, y;
+    Coordinate() {}
+    Coordinate(unsigned int x, unsigned int y) : x(x), y(y) {}
+};
+
 struct Label {
-    unsigned int startX, startY;
+    Coordinate start;
     unsigned int length;
     Label() {};
-    Label(unsigned int x, unsigned int y, unsigned int l) : startX(x), startY(y), length(l) {}
+    Label(unsigned int x, unsigned int y, unsigned int l) : start(x, y), length(l) {}
 };
 
 struct ProbeField {
@@ -28,88 +41,267 @@ struct ProbeField {
     Label inaCurrent;
 };
 
+struct TerminalBuffer {
+    static TerminalBuffer* buffer;
+    static uint64_t nLinesMAX;
+    static uint64_t nLines;
+
+    char* text = nullptr;
+};
+
+TerminalBuffer* TerminalBuffer::buffer = nullptr;
+uint64_t TerminalBuffer::nLinesMAX = 0;
+uint64_t TerminalBuffer::nLines = 0;
+
 ProbeField* probeFields;
+uint64_t max_x, max_y;
+Coordinate cursorLocation(7, 0);
+WINDOW *cli = nullptr;
+WINDOW *cli_inner = nullptr; // deze wordt gecleared om de output te vernieuwen
+char currentCommandBuffer[45]; // commands langer dan 45 characters worden niet verwacht
+bool probeMode = false;
+uint8_t probeNr = 0; // 1 - 3, indien true
 
 void initialiseScreen() {
     clear();
-    int x, y;
-    getmaxyx(stdscr, y, x);
 
-    uint64_t t = (x - 12) / 3 - 2;
+    // tekenen probe schermen adhv eigenschappen schermgrootte
+    curs_set(0);
+    getmaxyx(stdscr, max_y, max_x);
+    if (max_x < MIN_X || max_y < MIN_Y) {
+        printw("Het terminalscherm is te klein!\nMinimaal %d lijnen en %d elementen nodig.\nNu is dit %d lijnen en %d elementen groot.", MIN_Y, MIN_X, max_y, max_x);
+        move(max_y - 1, 0);
+        #ifdef WINDOWS
+        printw("Gelieve het scherm te stoppen door op '%s' te drukken en daarna het scherm te vergroten.", CLOSE_KEY);
+        #else
+        printw("Gelieve het scherm te vergroten en op '%s' te drukken, of het scherm te stoppen door op '%s' te drukken.", RESET_KEY, CLOSE_KEY);
+        #endif
+        refresh();
+        keypad(stdscr, true);
+        if (cli) {
+            keypad(cli, false);
+            delwin(cli);
+            cli = nullptr;
+        }
+        return;
+    }
+
+    uint64_t t = (max_x - 12) / 3 - 2;
     uint64_t r = 5 + t;
+    uint64_t s = (max_x - 12) / 6;
+    uint64_t k;
     for (uint8_t i = 0; i < 3; ++i) {
+        k = r * i + 4;
         probeFields[i].dacVoltage.length = t;
         probeFields[i].inaVoltage.length = t;
         probeFields[i].inaCurrent.length = t;
 
-        probeFields[i].dacVoltage.startX = 4 + r * i;
-        probeFields[i].inaVoltage.startX = 4 + r * i;
-        probeFields[i].inaCurrent.startX = 4 + r * i;
+        probeFields[i].dacVoltage.start.x = k;
+        probeFields[i].inaVoltage.start.x = k;
+        probeFields[i].inaCurrent.start.x = k;
 
-        probeFields[i].dacVoltage.startY = 4;
-        probeFields[i].inaVoltage.startY = 5;
-        probeFields[i].inaCurrent.startY = 6;
+        probeFields[i].dacVoltage.start.y = 4;
+        probeFields[i].inaVoltage.start.y = 5;
+        probeFields[i].inaCurrent.start.y = 6;
+
+        WINDOW *probeEdges = newwin(5, t + 2, 3, r * i + 3);
+        box(probeEdges, 0, 0);
+        refresh();
+        wrefresh(probeEdges);
+        attron(A_REVERSE);
+        // move(3, s * (2 * i + 1) - 2 + 3 * i); // oude stijl, Probe-titel gecentreerd
+        move(3, r * i + 5); // nieuwe stijl, Probe-titel links uitgelijnd
+        printw(" Probe %d ", i + 1);
+        attroff(A_REVERSE);
+        delwin(probeEdges);
     }
 
-    WINDOW *eersteProbeScherm = newwin(5, (x - 12) / 3, 3, 3);
-    box(eersteProbeScherm, 0, 0);
-    refresh();
-    wrefresh(eersteProbeScherm);
-    attron(A_REVERSE);
-    move(3, (x - 12) / 6 - 2);
-    printw(" Probe 1 ");
-    attroff(A_REVERSE);
-    delwin(eersteProbeScherm);
+    // tekenen en initialiseren CLI-scherm
 
-    WINDOW *tweedeProbeScherm = newwin(5, (x - 12) / 3, 3, 6 + (x - 12) / 3);
-    box(tweedeProbeScherm, 0, 0);
-    refresh();
-    wrefresh(tweedeProbeScherm);
-    attron(A_REVERSE);
-    move(3, (x - 12) / 2 + 1);
-    printw(" Probe 2 ");
-    attroff(A_REVERSE);
-    delwin(tweedeProbeScherm);
+    if (cli != nullptr) {
+        delwin(cli);
+        delwin(cli_inner);
+    } else {
+        keypad(stdscr, false);
+    }
+    // if (terminalBuffer != nullptr) {
+    //     delete[] terminalBuffer;
+    // }
+    // nTerminalLines = 0;
+    // terminalBuffer = new char[(max_y - 12) * (max_x - 7)];
+    // currentIndex = 0;
 
-    WINDOW *derdeProbeScherm = newwin(5, (x - 12) / 3, 3, 9 + 2 * (x - 12) / 3);
-    box(derdeProbeScherm, 0, 0);
+    if (TerminalBuffer::buffer != nullptr) {
+        delete[] TerminalBuffer::buffer;
+    }
+    TerminalBuffer::nLinesMAX = max_y - 13;
+    TerminalBuffer::nLines = 0;
+    TerminalBuffer::buffer = new TerminalBuffer[TerminalBuffer::nLinesMAX + 20]; // beetje extra plaats voorzien, zie verder bij de '\n' input
+
+    cli = newwin(max_y - 11, max_x - 6, 9, 3);
+    cli_inner = newwin(max_y - 13, max_x - 8, 10, 4);
+    box(cli, 0, 0);
     refresh();
-    wrefresh(derdeProbeScherm);
+    wrefresh(cli);
     attron(A_REVERSE);
-    move(3, 5 * (x - 12) / 6 + 4);
-    printw(" Probe 3 ");
+    move(9, 5);
+    printw(" Terminal ");
     attroff(A_REVERSE);
-    delwin(derdeProbeScherm);
+    keypad(cli, true);
+
+    cursorLocation.y = max_y - 4;
+    cursorLocation.x = 7;
+
+    move(max_y - 4, 5);
+    if (probeMode) {
+        printw("Probe %d#");
+    } else {
+        printw("$");
+    }
+    
+    // tekenen rand-informatie
+
+    //   titel
+    move(0, 0);
+    attron(A_REVERSE);
+    #ifdef WINDOWS
+    printw(" Transistortester kalibratiescherm (gecompileerd voor Windows)%*s ", max_x - 63, "Ingo Chin, Tom Windels");
+    #else
+    #ifdef USING_RPI
+    printw(" Transistortester kalibratiescherm (gecompileerd voor Raspberry Pi)%*s ", max_x - 68, "Ingo Chin, Tom Windels");
+    #else
+    printw(" Transistortester kalibratiescherm%*s ", max_x - 35, "Ingo Chin, Tom Windels");
+    #endif
+    #endif
+    //    toets-balk
+    move(max_y - 1, 0);
+    printw("^X          ^R %*s ", max_x - 16, VERSION);
+    attroff(A_REVERSE);
+    move(max_y - 1, 3);
+    printw(" Sluiten ");
+    move(max_y - 1, 15);
+    printw(" Herstarten ");
+}
+
+char* interpretCommand(const char * cmd) {
+    if (strcmp(cmd, "help") == 0 || strcmp(cmd, "h") == 0) {                    
+        char* returnText = new char[400]; // tijdelijke buffer die de volledige output bevat van meerdere lijnen
+        if (!probeMode) {
+            sprintf(returnText,
+            "---\n"
+            "Transistortester %s\n"
+            "---\n"
+            "  p <1-3>, probe <1-3>\tGaat over naar probe-modus.\n"
+            "  e, exit             \tSluit het kalibratiescherm.\n"
+            "  clr, clear          \tMaakt het scherm leeg.\n"
+            "  h, help             \tToont deze help\n"
+            "  s, save             \tSla de huidige configuratie op.\n"
+            "---"
+            , VERSION);
+        } else {
+            sprintf(returnText,
+            "---\n"
+            "Transistortester - Probemode actief %s\n"
+            "---\n"
+            "  voltage <waarde>[mV]\tStel <waarde> mV in op de probe.\n"
+            "  shunt <waarde>[mOhm]  \tStel <waarde> in als shuntweerstand.\n"
+            "  offset <waarde>[mV] \tStel <waarde> in als *constante* offset.\n"
+            "  c, calibrate        \tHerkalibreer (nuttig wanneer er een offset is ingesteld).\n"
+            "---"
+            , VERSION);
+        }
+        return returnText;
+    } else if (strcmp(cmd, "exit") == 0 || strcmp(cmd, "e") == 0) {
+        if (probeMode) {
+            char* returnText = new char[15];
+            sprintf(returnText, "Probemode is gestopt.");
+            probeMode = false;
+            return returnText;
+        }
+        CalibrationWindow::shouldExit = true;
+        return nullptr;
+    } else if (strcmp(cmd, "clear") == 0 || strcmp(cmd, "clr") == 0) {
+        initialiseScreen();
+        return nullptr;
+    } else if (!probeMode && cmd[0] == 'p') {
+        if (strlen(cmd) == 3 && cmd[1] == ' ') {
+            if (cmd[2] == '1') {
+                goto probe1;
+            } else if (cmd[2] == '2') {
+                goto probe2;
+            } else if (cmd[2] == '3') {
+                goto probe3;
+            } else {
+                char* returnText = new char[40];
+                sprintf(returnText, "Probenummer %d is niet correct.", cmd[2] - '0');
+                return returnText;
+            }
+        } else if (strlen(cmd) == 7) {
+            for (uint8_t i = 1; i < 6; ++i) {
+                if (cmd[i] != "probe "[i]) { // dit werkt blijkbaar?
+                    goto niet_herkend;
+                }
+            }
+            if (cmd[6] == '1') {
+                probe1:
+                char* returnText = new char[35];
+                sprintf(returnText, "Overschakelen naar probe 1");
+                probeMode = true;
+                probeNr = 1;
+                return returnText;
+            } else if (cmd[6] == '2') {
+                probe2:
+                char* returnText = new char[35];
+                sprintf(returnText, "Overschakelen naar probe 2");
+                probeMode = true;
+                probeNr = 2;
+                return returnText;
+            } else if (cmd[6] == '3') {
+                probe3:
+                char* returnText = new char[35];
+                sprintf(returnText, "Overschakelen naar probe 3");
+                probeMode = true;
+                probeNr = 3;
+                return returnText;
+            } else {
+                char* returnText = new char[35];
+                sprintf(returnText, "Probenummer %d is niet correct.", cmd[6] - '0');
+                return returnText;
+            }
+        } else {
+            goto niet_herkend;
+        }
+        
+    }
+    niet_herkend:
+    char* returnText = new char[100]; // cmd zelf kan vrij groot zijn
+    sprintf(returnText, "Command '%s' werd niet herkend!", cmd);
+    return returnText;
 }
 
 namespace CalibrationWindow {
+
+    bool shouldExit = false;
 
     void init() {
         initscr();
         raw();
         noecho();
-
+        nonl();
         timeout(0);
-
         probeFields = new ProbeField[3];
-
         #ifndef WINDOWS
         signal(SIGWINCH, onResize);
         #endif
-        int x, y;
-
-        getmaxyx(stdscr, y, x);
-
-        if (x < MIN_X || y < MIN_Y) {
-            printw("Het terminalscherm is te klein!\nMinimaal %d lijnen en %d elementen nodig.\nNu is dit %d lijnen en %d elementen groot.", MIN_Y, MIN_X, y, x);
-        } else {
-            initialiseScreen();
-        }
+        currentCommandBuffer[44] = '\0';
+        initialiseScreen();
     }
 
     void destroy() {
         endwin();
         delete[] probeFields;
+        // delete[] terminalBuffer;
+        delete[] TerminalBuffer::buffer;
     }
 
     void update() {
@@ -120,26 +312,146 @@ namespace CalibrationWindow {
             initscr();
             raw();
             noecho();
-            int x, y;
-            getmaxyx(stdscr, y, x);
-            if (x < MIN_X || y < MIN_Y) {
-                clear();
-                printw("Het terminalscherm is te klein!\nMinimaal %d lijnen en %d elementen nodig.\nNu is dit %d lijnen en %d elementen groot.", MIN_Y, MIN_X, y, x);
-            } else {
-                initialiseScreen();
-            }
+            nonl();
+            initialiseScreen();
         }
         #endif
-        int y, x;
-        getmaxyx(stdscr, y, x);
-        if (x >= MIN_X && y >= MIN_Y) {
+        if (max_x >= MIN_X && max_y >= MIN_Y) {
             for (uint8_t i = 0; i < 3; ++i) {
-                move(probeFields[i].dacVoltage.startY, probeFields[i].dacVoltage.startX);
+                move(probeFields[i].dacVoltage.start.y, probeFields[i].dacVoltage.start.x);
                 printw("DAC: %*d mV", probeFields[i].dacVoltage.length - 8, Probe::probe[i].currentVoltageSet);
-                move(probeFields[i].inaVoltage.startY, probeFields[i].inaVoltage.startX);
+                move(probeFields[i].inaVoltage.start.y, probeFields[i].inaVoltage.start.x);
                 printw("INA: %*d mV", probeFields[i].inaVoltage.length - 8, Probe::probe[i].readVoltage());
-                move(probeFields[i].inaCurrent.startY, probeFields[i].inaCurrent.startX);
+                move(probeFields[i].inaCurrent.start.y, probeFields[i].inaCurrent.start.x);
                 printw("%*f mA", probeFields[i].inaCurrent.length - 3, ((float) Probe::probe[i].readCurrent()) / 1000);
+                refresh();
+            }
+        }
+        int c = cli ? wgetch(cli) : wgetch(stdscr);
+        switch (c) {
+            case CTRL('x'): {
+                endwin();
+                initscr();
+                raw();
+                noecho();
+                shouldExit = true;
+                break;
+            }
+            case CTRL('r'): {
+                initialiseScreen();
+                break;
+            }
+            case '\n': // newline, 13 komt ook op sommige systemen voor als de enterknop
+            case 13: {
+                // de buffer "afsluiten" met \0, waardoor de buffer als string kan worden geinterpreteerd
+                if (!probeMode) {
+                    currentCommandBuffer[cursorLocation.x - 7] = '\0';
+                } else {
+                    currentCommandBuffer[cursorLocation.x - 14] = '\0';
+                }
+
+                // er kunnen maar nLinesMAX tergelijk worden getoond,
+                // het geheugen wordt maar bij 8 extra entries verplaatst
+                // zodanig dat het aantal keer verplaatsen van geheugen
+                // beperkter is
+
+                move(0, 0);
+                printw("%d", TerminalBuffer::nLines);
+
+                if (TerminalBuffer::nLines > TerminalBuffer::nLinesMAX + 15) {
+                    // nieuwe buffer maken die gedeeltelijk wordt opgevuld
+                    TerminalBuffer* newBuffer = new TerminalBuffer[TerminalBuffer::nLinesMAX + 20];
+                    // plaats van het "oudste" commando dat nog wordt weergegeven vinden
+                    const TerminalBuffer* start = &TerminalBuffer::buffer[20];
+                    // vanaf hier kopieren uit de oude buffer
+                    for (uint8_t i = 0; i < TerminalBuffer::nLinesMAX; ++i) {
+                        newBuffer[i].text = start[i].text;
+                    }
+                    // aanduiden in nLines dat de buffer nu weer kleiner is, nl. het maximum aantal weergegeven
+                    TerminalBuffer::nLines = TerminalBuffer::nLinesMAX - 1;
+                    // oude "sub"buffers vrijgeven
+                    for (uint8_t i = 0; i < 20; ++i) {
+                        delete[] TerminalBuffer::buffer[i].text;
+                    }
+                    // oude buffer vrijgeven
+                    delete[] TerminalBuffer::buffer;
+                    // nieuwe buffer gebruiken
+                    TerminalBuffer::buffer = newBuffer;
+                }
+
+                // de buffer als string interpreteren, en toevoegen aan de terminalbuffer
+                uint8_t len = strlen(currentCommandBuffer) + 2; // er komt 2 bij wegens de tekens "> "
+                TerminalBuffer::buffer[TerminalBuffer::nLines].text = new char[len + 1]; // "sub"geheugen aanmaken
+                TerminalBuffer::buffer[TerminalBuffer::nLines].text[0] = probeMode? '%' : '>'; // '>' & ' ' invoegen
+                TerminalBuffer::buffer[TerminalBuffer::nLines].text[1] = ' ';
+                for (uint8_t i = 2; i < len; ++i) { // commando zelf in buffer steken
+                    TerminalBuffer::buffer[TerminalBuffer::nLines].text[i] = currentCommandBuffer[i - 2];
+                }
+                TerminalBuffer::buffer[TerminalBuffer::nLines].text[len] = '\0'; // "sub"buffer "sluiten"
+                ++TerminalBuffer::nLines;
+
+                // de buffer als ingegeven commando interpreteren
+                char* returnStatement = interpretCommand(currentCommandBuffer);
+                // indien er een return statement is, is returnStatement niet de nullptr
+                if (returnStatement) {
+                    uint64_t index = 0;
+                    uint64_t previousNewline = 0;
+                    while (returnStatement[index]) {
+                        if (returnStatement[index] == '\n') {
+                            TerminalBuffer::buffer[TerminalBuffer::nLines].text = new char[index - previousNewline + 1];
+                            for (uint64_t i = previousNewline; i < index; ++i) {
+                                TerminalBuffer::buffer[TerminalBuffer::nLines].text[i - previousNewline] = returnStatement[i];
+                            }
+                            TerminalBuffer::buffer[TerminalBuffer::nLines].text[index - previousNewline] = '\0';
+                            previousNewline = index + 1;
+                            ++TerminalBuffer::nLines;
+                        }
+                        ++index;
+                    }
+                    TerminalBuffer::buffer[TerminalBuffer::nLines].text = new char[index - previousNewline];
+                    strcpy(TerminalBuffer::buffer[TerminalBuffer::nLines].text, returnStatement + previousNewline);
+                    ++TerminalBuffer::nLines;
+                    delete[] returnStatement;
+                }
+                // alle (zichtbare) lijnen op het scherm plaatsen
+                // eerst huidige zichtbare lijnen wissen
+                werase(cli_inner);
+                wrefresh(cli_inner);
+                // nieuwe lijnen plaatsen
+                uint64_t nPrint = TerminalBuffer::nLines > TerminalBuffer::nLinesMAX ? TerminalBuffer::nLinesMAX : TerminalBuffer::nLines + 1;
+                for (uint8_t i = 1; i < nPrint; ++i) {
+                    move(max_y - 4 - i, 5);
+                    printw("%s", TerminalBuffer::buffer[TerminalBuffer::nLines - i].text);
+                }
+                move(max_y - 4, 5);
+                if (probeMode) {
+                    printw("Probe %d#", probeNr);
+                    cursorLocation.x = 14;
+                } else {
+                    printw("$");
+                    cursorLocation.x = 7;
+                }
+                break;
+            }
+            case KEY_BACKSPACE: // backspace, 8 komt ook soms op sommige systemen voor
+            case 8: {
+                if (!probeMode && cursorLocation.x >= 8 || probeMode && cursorLocation.x >= 15) {
+                    move(cursorLocation.y, cursorLocation.x -= 1);
+                    printw(" ");
+                }
+                break;
+            }
+            default: {
+                if (cursorLocation.x < 51) {
+                    move(cursorLocation.y, cursorLocation.x++);
+                    printw("%c", (char) c);
+                    if (!probeMode) {
+                        currentCommandBuffer[cursorLocation.x - 8] = c;
+                    } else {
+                        currentCommandBuffer[cursorLocation.x - 15] = c;
+                    }
+                }
+                break;
             }
         }
     }
@@ -165,12 +477,13 @@ namespace CalibrationWindow {
         return ms;
     }
 
-    bool shouldExit() {
-        char c = getch();
-        if (c == 'q') {
-            return true;
-        }
-        return false;
-    }
+    // bool shouldExit() {
+    //     // if (cli) {
+    //         // int c = wgetch(stdscr);
+    //         // return c == ctl('x');
+    //     // }
+    //     // char c = getch();
+    //     // return c == 'q';
+    // }
 }
 #endif
