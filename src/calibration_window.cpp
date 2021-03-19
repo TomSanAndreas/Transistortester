@@ -173,14 +173,19 @@ void initialiseScreen() {
     printw(" Transistortester kalibratiescherm (gecompileerd voor Windows)%*s ", max_x - 63, "Ingo Chin, Tom Windels");
     #else
     #ifdef USING_RPI
-    printw(" Transistortester kalibratiescherm (gecompileerd voor Raspberry Pi)%*s ", max_x - 68, "Ingo Chin, Tom Windels");
+    // printw(" Transistortester kalibratiescherm (gecompileerd voor Raspberry Pi)%*s ", max_x - 68, "Ingo Chin, Tom Windels"); // oude lijn, levert een segfault op :(
+    printw(" Transistortester kalibratiescherm (gecompileerd voor Raspberry Pi) ");
     #else
     printw(" Transistortester kalibratiescherm%*s ", max_x - 35, "Ingo Chin, Tom Windels");
     #endif
     #endif
     //    toets-balk
     move(max_y - 1, 0);
+    #ifndef USING_RPI
     printw("^X          ^R %*s ", max_x - 16, VERSION);
+    #else
+    printw("^X          ^R ");
+    #endif
     attroff(A_REVERSE);
     move(max_y - 1, 3);
     printw(" Sluiten ");
@@ -393,7 +398,7 @@ char* interpretCommand(const char * cmd) {
             , &cmd[verkeerdeIndex]);
             return returnText;
         } else {
-            //TODO offset instellen in probe [probeNr-1]
+            Probe::probe[probeNr - 1].setOffset(offsetWaarde);
             char* returnText = new char[90];
             sprintf(returnText,
             "De offset voor probe %d is nu %d mV."
