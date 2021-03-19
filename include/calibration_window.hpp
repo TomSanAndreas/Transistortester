@@ -18,7 +18,6 @@ namespace CalibrationWindow {
 
     void init();
     void update();
-    int sleep(long ms);
     void destroy();
 }
 #endif

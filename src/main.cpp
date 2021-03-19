@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
             CalibrationWindow::init();
             while (!CalibrationWindow::shouldExit) {
                 CalibrationWindow::update();
-                CalibrationWindow::sleep(10);
+                sleep(10);
             }
             CalibrationWindow::destroy();
             Probe::destroy();

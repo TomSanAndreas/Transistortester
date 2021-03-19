@@ -1,8 +1,6 @@
 #include "calibration_window.hpp"
 #ifdef COMPILE_WITH_CALIBRATION_WINDOW
 #include <signal.h>// voor callbacks bij het resizen van de terminal
-#include <time.h>  // voor sleep()
-#include <errno.h> // voor sleep()
 #include <stdio.h> // voor sprintf()
 #include <string.h>// voor strlen()
 
@@ -56,6 +54,8 @@ uint64_t TerminalBuffer::nLines = 0;
 ProbeField* probeFields;
 uint64_t max_x, max_y;
 Coordinate cursorLocation(7, 0);
+bool cursorVisible = true; // aangeven of de cursor nu wel of niet zichtbaar is
+uint8_t cursorTick = 0; // elke keer wanneer deze 70 groot is, wordt de visibility gealterneerd
 WINDOW *cli = nullptr;
 WINDOW *cli_inner = nullptr; // deze wordt gecleared om de output te vernieuwen
 char currentCommandBuffer[45]; // commands langer dan 45 characters worden niet verwacht
@@ -114,6 +114,10 @@ void initialiseScreen() {
         printw(" Probe %d ", i + 1);
         attroff(A_REVERSE);
         delwin(probeEdges);
+
+        // initiele dac-spanningen tonen
+        move(probeFields[i].dacVoltage.start.y, probeFields[i].dacVoltage.start.x);
+        printw("DAC: %*d mV", probeFields[i].dacVoltage.length - 8, Probe::probe[i].currentVoltageSet);
     }
 
     // tekenen en initialiseren CLI-scherm
@@ -148,6 +152,7 @@ void initialiseScreen() {
     printw(" Terminal ");
     attroff(A_REVERSE);
     keypad(cli, true);
+    nodelay(cli, true); // wgetch() is een non-blocking call nu
 
     cursorLocation.y = max_y - 4;
     cursorLocation.x = 7;
@@ -183,15 +188,32 @@ void initialiseScreen() {
     printw(" Herstarten ");
 }
 
+int interpretNumber(const char * str, uint64_t* errorIndex) {
+    int64_t result = 0;
+    uint64_t j = 0;
+    uint64_t len = strlen(str);
+    while (str[j] == '\0') ++j;
+    for (uint64_t i = j; i < len; ++i) {
+        if (str[i] >= '0' && str[i] <= '9') {
+            result *= 10;
+            result += str[i] - '0';
+        } else {
+            *errorIndex = i;
+            return -1;
+        }
+    }
+    return result;
+}
+
 char* interpretCommand(const char * cmd) {
     if (strcmp(cmd, "help") == 0 || strcmp(cmd, "h") == 0) {                    
-        char* returnText = new char[400]; // tijdelijke buffer die de volledige output bevat van meerdere lijnen
+        char* returnText = new char[450]; // tijdelijke buffer die de volledige output bevat van meerdere lijnen
         if (!probeMode) {
             sprintf(returnText,
             "---\n"
-            "Transistortester %s\n"
+            "Transistortester - %s\n"
             "---\n"
-            "  p <1-3>, probe <1-3>\tGaat over naar probe-modus.\n"
+            "  p, probe <1-3>      \tGaat over naar probe-modus.\n"
             "  e, exit             \tSluit het kalibratiescherm.\n"
             "  clr, clear          \tMaakt het scherm leeg.\n"
             "  h, help             \tToont deze help\n"
@@ -201,16 +223,211 @@ char* interpretCommand(const char * cmd) {
         } else {
             sprintf(returnText,
             "---\n"
-            "Transistortester - Probemode actief %s\n"
+            "Transistortester - Probemode actief - %s\n"
             "---\n"
-            "  voltage <waarde>[mV]\tStel <waarde> mV in op de probe.\n"
-            "  shunt <waarde>[mOhm]  \tStel <waarde> in als shuntweerstand.\n"
-            "  offset <waarde>[mV] \tStel <waarde> in als *constante* offset.\n"
-            "  c, calibrate        \tHerkalibreer (nuttig wanneer er een offset is ingesteld).\n"
+            "  v, voltage <waarde>[mV]\tStel <waarde> mV in op de probe.\n"
+            "  s, shunt <waarde>[mOhm]\tStel <waarde> in als shuntweerstand.\n"
+            "  cu, current <waarde>[uA]\tStel <waarde> in als verwachte stroom door de probe.\n"
+            "  o, offset <waarde>[mV]\tStel <waarde> in als *constante* offset.\n"
+            "  ca, calibrate        \tHerkalibreer (nuttig wanneer er een offset is ingesteld).\n"
+            "  e, exit             \tStop probemode.\n"
             "---"
             , VERSION);
         }
         return returnText;
+    } else if (cmd[0] == 'v') {
+        uint64_t verkeerdeIndex; // gebruikt voor errortekst indien nodig
+        int64_t voltage;
+        if (cmd[1] == ' ') {
+            if (probeMode) {
+                voltage = interpretNumber(&cmd[2], &verkeerdeIndex);
+            } else {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+        } else {
+            for (uint8_t i = 1; i < 8; ++i) {
+                if (cmd[i] != "voltage "[i]) { // dit werkt blijkbaar?
+                    goto niet_herkend;
+                }
+            }
+            if (probeMode) {
+                voltage = interpretNumber(&cmd[8], &verkeerdeIndex);
+            } else {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+        }
+        if (voltage == -1) {
+            char* returnText = new char[150];
+            sprintf(returnText,
+            "Ongekende spanning: %s.\n"
+            "Gelieve geen eenheden mee te geven, maar telkens de gewenste waarde in mV uit te drukken."
+            , &cmd[verkeerdeIndex]);
+            return returnText;
+        } else if (voltage <= 5000) {
+            // spanning instellen
+            Probe::probe[probeNr - 1].setVoltage(voltage);
+            // aangepaste spanning tonen
+            move(probeFields[probeNr - 1].dacVoltage.start.y, probeFields[probeNr - 1].dacVoltage.start.x);
+            printw("DAC: %*d mV", probeFields[probeNr - 1].dacVoltage.length - 8, Probe::probe[probeNr - 1].currentVoltageSet);
+            char* returnText = new char[65];
+            sprintf(returnText,
+            "De spanning voor probe %d is nu ingesteld op %d mV!"
+            , probeNr, voltage);
+            return returnText;
+        } else {
+            char* returnText = new char[100];
+            sprintf(returnText,
+            "Spanning %d mV is te groot. Maximumspanning bedraagd 5000mV."
+            , voltage);
+            return returnText;
+        }
+    } else if (cmd[0] == 's') {
+        uint64_t verkeerdeIndex;
+        int64_t shuntWaarde;
+        if (cmd[1] == ' ') {
+            if (!probeMode) {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+            shuntWaarde = interpretNumber(&cmd[2], &verkeerdeIndex);
+        } else {
+            for (uint8_t i = 1; i < 6; ++i) {
+                if (cmd[i] != "shunt "[i]) {
+                    goto niet_herkend;
+                }
+            }
+            if (!probeMode) {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+            shuntWaarde = interpretNumber(&cmd[6], &verkeerdeIndex);
+        }
+        if (shuntWaarde == -1) {
+            char* returnText = new char[150];
+            sprintf(returnText,
+            "Ongekende shuntwaarde: %s.\n"
+            "Gelieve geen eenheden mee te geven, maar telkens de gewenste waarde in mOhm uit te drukken."
+            , &cmd[verkeerdeIndex]);
+            return returnText;
+        } else {
+            Probe::probe[probeNr - 1].setShunt(shuntWaarde / 1000.f);
+            char* returnText = new char[65];
+            sprintf(returnText,
+            "De shuntwaarde voor probe %d is nu ingesteld op %d mOhm!"
+            , probeNr, shuntWaarde);
+            return returnText;
+        }
+    } else if (cmd[0] == 'c' && cmd[1] == 'u') { // current
+        uint64_t verkeerdeIndex;
+        int64_t currentWaarde;
+        if (cmd[2] == ' ') {
+            if (!probeMode) {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+            currentWaarde = interpretNumber(&cmd[3], &verkeerdeIndex);
+        } else {
+            for (uint8_t i = 2; i < 8; ++i) {
+                if (cmd[i] != "current "[i]) {
+                    goto niet_herkend;
+                }
+            }
+            if (!probeMode) {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+            currentWaarde = interpretNumber(&cmd[8], &verkeerdeIndex);
+        }
+        if (currentWaarde == -1) {
+            char* returnText = new char[150];
+            sprintf(returnText,
+            "Ongekende stroom: %s.\n"
+            "Gelieve geen eenheden mee te geven, maar telkens de gewenste waarde in uA uit te drukken."
+            , &cmd[verkeerdeIndex]);
+            return returnText;
+        } else {
+            uint64_t nieuweShuntWaarde = Probe::probe[probeNr - 1].adjustShuntUsingCurrent(currentWaarde) * 1000;
+            char* returnText = new char[150];
+            sprintf(returnText,
+            "De shuntwaarde voor probe %d is nu zodanig geregeld tot er %d uA gemeten wordt.\n"
+            "De nieuwe shuntwaarde bedraagt nu %d mOhm."
+            , probeNr, currentWaarde, nieuweShuntWaarde);
+            return returnText;
+        }
+    } else if (cmd[0] == 'o') { // offset
+        uint64_t verkeerdeIndex;
+        int64_t offsetWaarde;
+        if (cmd[1] == ' ') {
+            if (!probeMode) {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+            offsetWaarde = interpretNumber(&cmd[2], &verkeerdeIndex);
+        } else {
+            for (uint8_t i = 2; i < 7; ++i) {
+                if (cmd[i] != "offset "[i]) {
+                    goto niet_herkend;
+                }
+            }
+            if (!probeMode) {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+            offsetWaarde = interpretNumber(&cmd[7], &verkeerdeIndex);
+        }
+        if (offsetWaarde == -1) {
+            char* returnText = new char[150];
+            sprintf(returnText,
+            "Ongekende offset: %s.\n"
+            "Gelieve geen eenheden mee te geven, maar telkens de gewenste waarde in mV uit te drukken."
+            , &cmd[verkeerdeIndex]);
+            return returnText;
+        } else {
+            //TODO offset instellen in probe [probeNr-1]
+            char* returnText = new char[90];
+            sprintf(returnText,
+            "De offset voor probe %d is nu %d mV."
+            , probeNr, offsetWaarde);
+            return returnText;
+        }
+    } else if (cmd[0] == 'c' && cmd[1] == 'a') { // kalibratie
+        uint64_t len = strlen(cmd);
+        if (len == 2) {
+            if (!probeMode) {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+            Probe::probe[probeNr - 1].calibrate();
+            char* returnText = new char[60];
+            sprintf(returnText, "Probe %d is opnieuw gekalibreerd.", probeNr);
+            return returnText;
+        } else {
+            for (uint8_t i = 2; i < 10; ++i) {
+                if (cmd[i] != "calibrate"[i]) {
+                    goto niet_herkend;
+                }
+            }
+            if (!probeMode) {
+                char* returnText = new char[60];
+                strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
+                return returnText;
+            }
+            Probe::probe[probeNr - 1].calibrate();
+            char* returnText = new char[60];
+            sprintf(returnText, "Probe %d is opnieuw gekalibreerd.", probeNr);
+            return returnText;
+        }
     } else if (strcmp(cmd, "exit") == 0 || strcmp(cmd, "e") == 0) {
         if (probeMode) {
             char* returnText = new char[15];
@@ -223,7 +440,7 @@ char* interpretCommand(const char * cmd) {
     } else if (strcmp(cmd, "clear") == 0 || strcmp(cmd, "clr") == 0) {
         initialiseScreen();
         return nullptr;
-    } else if (!probeMode && cmd[0] == 'p') {
+    } else if (cmd[0] == 'p') {
         if (strlen(cmd) == 3 && cmd[1] == ' ') {
             if (cmd[2] == '1') {
                 goto probe1;
@@ -238,7 +455,7 @@ char* interpretCommand(const char * cmd) {
             }
         } else if (strlen(cmd) == 7) {
             for (uint8_t i = 1; i < 6; ++i) {
-                if (cmd[i] != "probe "[i]) { // dit werkt blijkbaar?
+                if (cmd[i] != "probe "[i]) {
                     goto niet_herkend;
                 }
             }
@@ -318,12 +535,12 @@ namespace CalibrationWindow {
         #endif
         if (max_x >= MIN_X && max_y >= MIN_Y) {
             for (uint8_t i = 0; i < 3; ++i) {
-                move(probeFields[i].dacVoltage.start.y, probeFields[i].dacVoltage.start.x);
-                printw("DAC: %*d mV", probeFields[i].dacVoltage.length - 8, Probe::probe[i].currentVoltageSet);
+                // move(probeFields[i].dacVoltage.start.y, probeFields[i].dacVoltage.start.x);
+                // printw("DAC: %*d mV", probeFields[i].dacVoltage.length - 8, Probe::probe[i].currentVoltageSet);
                 move(probeFields[i].inaVoltage.start.y, probeFields[i].inaVoltage.start.x);
                 printw("INA: %*d mV", probeFields[i].inaVoltage.length - 8, Probe::probe[i].readVoltage());
                 move(probeFields[i].inaCurrent.start.y, probeFields[i].inaCurrent.start.x);
-                printw("%*f mA", probeFields[i].inaCurrent.length - 3, ((float) Probe::probe[i].readCurrent()) / 1000);
+                printw("%*f uA", probeFields[i].inaCurrent.length - 3, Probe::probe[i].readCurrent());
                 refresh();
             }
         }
@@ -354,9 +571,6 @@ namespace CalibrationWindow {
                 // het geheugen wordt maar bij 8 extra entries verplaatst
                 // zodanig dat het aantal keer verplaatsen van geheugen
                 // beperkter is
-
-                move(0, 0);
-                printw("%d", TerminalBuffer::nLines);
 
                 if (TerminalBuffer::nLines > TerminalBuffer::nLinesMAX + 15) {
                     // nieuwe buffer maken die gedeeltelijk wordt opgevuld
@@ -418,17 +632,19 @@ namespace CalibrationWindow {
                 werase(cli_inner);
                 wrefresh(cli_inner);
                 // nieuwe lijnen plaatsen
-                uint64_t nPrint = TerminalBuffer::nLines > TerminalBuffer::nLinesMAX ? TerminalBuffer::nLinesMAX : TerminalBuffer::nLines + 1;
+                uint64_t nPrint = TerminalBuffer::nLines > TerminalBuffer::nLinesMAX - 1 ? TerminalBuffer::nLinesMAX : TerminalBuffer::nLines + 1;
                 for (uint8_t i = 1; i < nPrint; ++i) {
                     move(max_y - 4 - i, 5);
                     printw("%s", TerminalBuffer::buffer[TerminalBuffer::nLines - i].text);
                 }
                 move(max_y - 4, 5);
                 if (probeMode) {
+                    attron(A_REVERSE);
                     printw("Probe %d#", probeNr);
+                    attroff(A_REVERSE);
                     cursorLocation.x = 14;
                 } else {
-                    printw("$");
+                    printw("$ ");
                     cursorLocation.x = 7;
                 }
                 break;
@@ -437,53 +653,39 @@ namespace CalibrationWindow {
             case 8: {
                 if (!probeMode && cursorLocation.x >= 8 || probeMode && cursorLocation.x >= 15) {
                     move(cursorLocation.y, cursorLocation.x -= 1);
-                    printw(" ");
+                    printw("  "); // 2 spaties wegens een mogelijke cursor die anders achter blijft
                 }
                 break;
             }
+            case -1: {
+                // geen userinput ontvangen
+                break;
+            }
             default: {
-                if (cursorLocation.x < 51) {
-                    move(cursorLocation.y, cursorLocation.x++);
-                    printw("%c", (char) c);
-                    if (!probeMode) {
-                        currentCommandBuffer[cursorLocation.x - 8] = c;
-                    } else {
-                        currentCommandBuffer[cursorLocation.x - 15] = c;
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == ' ') {
+                    if (cursorLocation.x < 51) {
+                        move(cursorLocation.y, cursorLocation.x++);
+                        printw("%c", (char) c);
+                        if (!probeMode) {
+                            currentCommandBuffer[cursorLocation.x - 8] = c;
+                        } else {
+                            currentCommandBuffer[cursorLocation.x - 15] = c;
+                        }
                     }
                 }
                 break;
             }
         }
-    }
-
-    // Stackoverflow: "Is there an alternative sleep function in C to milliseconds?"
-    // Slaap voor ms milliseconden.
-    int sleep(long ms) {
-        timespec ts;
-        int res;
-
-        if (ms < 0) {
-            errno = EINVAL;
-            return -1;
+        cursorTick += 1;
+        if (cursorTick == 70) {
+            cursorTick = 0;
+            cursorVisible = !cursorVisible;
         }
-
-        ts.tv_sec = ms/1000;
-        ts.tv_nsec = (ms % 1000) * 1000000;
-
-        do {
-            res = nanosleep(&ts, &ts);
-        } while (res && errno == EINTR);
-
-        return ms;
+        move(cursorLocation.y, cursorLocation.x);
+        if (cursorVisible)
+            attron(A_REVERSE);
+        printw(" ");
+        attroff(A_REVERSE);
     }
-
-    // bool shouldExit() {
-    //     // if (cli) {
-    //         // int c = wgetch(stdscr);
-    //         // return c == ctl('x');
-    //     // }
-    //     // char c = getch();
-    //     // return c == 'q';
-    // }
 }
 #endif

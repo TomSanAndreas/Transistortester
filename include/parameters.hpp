@@ -1,7 +1,7 @@
 #pragma once
 
 // huidige versie van de transistortester
-#define VERSION "v0.1 BETA"
+#define VERSION "v0.2 BETA"
 
 // onderstaande DEFINE dient enkel actief te worden gezet indien debuggen op I²C-niveau vereist is.
 // dit werkt niet correct wanneer het calibratiescherm wordt gebruikt!
@@ -18,3 +18,5 @@
 #define WINDOWS 1
 
 #endif
+
+#include "base.hpp"

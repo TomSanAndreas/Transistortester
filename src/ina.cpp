@@ -20,7 +20,22 @@ Current INA::readCurrent() {
     // FIXME indices might be inverted, description and diagram aren't consistent on page 20
     short receivedData = (received.data[1] << 8) | received.data[0];
     Voltage shuntMicroVoltage = receivedData * 2.5;
-    return shuntMicroVoltage / R_SHUNT;
+    return shuntMicroVoltage / rShunt;
+}
+
+// page 16: 2.5µV / bit for shunt voltage, table at page 17 confirms this
+Current INA::readShuntVoltage() {
+    // TODO implement this using READ_IIN / READ_IOUT
+    // now implemented using MFR_READ_VSHUNT
+    // set the MFR_READ_VSHUNT register
+    byte registerByte[] = { MFR_READ_VSHUNT };
+    queue({ registerByte, 1 });
+    send();
+    // now read from MFR_READ_VSHUNT register
+    sendAndAwait(2);
+    const Buffer& received = readResponse();
+    // FIXME indices might be inverted, description and diagram aren't consistent on page 20
+    return ((received.data[1] << 8) | received.data[0]) * 2.5;
 }
 
 // page 16: 1.25mV / bit for bus voltage

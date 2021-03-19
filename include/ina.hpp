@@ -5,7 +5,6 @@
 
 #include "i2c_device.hpp"
 
-#define R_SHUNT 4
 // // for calculation, see page 16
 // // max current is 1 here
 // #define CAL 32768 * 0.00512 / R_SHUNT
@@ -28,8 +27,11 @@ class INA : public I2C_Device {
         INA(INA_Address);
         friend class Probe;
     public:
+        float rShunt = 4.0;
         // result is signed and in µA
         Current readCurrent();
         // result is unsigned and in mV
         UVoltage readVoltage();
+        // result is signed and in µV
+        Voltage readShuntVoltage();
 };
