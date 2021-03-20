@@ -26,7 +26,7 @@ void Probe::calibrate() {
     // sample the voltage
     UVoltage maxVoltage = ina.readVoltage() + vOffset;
     // set ratio
-    voltBitRatio = maxVoltage / 4095;
+    voltBitRatio = ((double) maxVoltage) / 4096;
     // set the dac back
     dac.setVoltage(original);
 }

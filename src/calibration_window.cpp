@@ -194,7 +194,7 @@ void initialiseScreen() {
 }
 
 int interpretNumber(const char * str, unsigned int* errorIndex) {
-    int64_t result = 0;
+    int result = 0;
     unsigned int j = 0;
     unsigned int len = strlen(str);
     while (str[j] == '\0') ++j;
@@ -242,7 +242,7 @@ char* interpretCommand(const char * cmd) {
         return returnText;
     } else if (cmd[0] == 'v') {
         unsigned int verkeerdeIndex; // gebruikt voor errortekst indien nodig
-        int64_t voltage;
+        int voltage;
         if (cmd[1] == ' ') {
             if (probeMode) {
                 voltage = interpretNumber(&cmd[2], &verkeerdeIndex);
@@ -292,7 +292,7 @@ char* interpretCommand(const char * cmd) {
         }
     } else if (cmd[0] == 's') {
         unsigned int verkeerdeIndex;
-        int64_t shuntWaarde;
+        int shuntWaarde;
         if (cmd[1] == ' ') {
             if (!probeMode) {
                 char* returnText = new char[60];
@@ -330,7 +330,7 @@ char* interpretCommand(const char * cmd) {
         }
     } else if (cmd[0] == 'c' && cmd[1] == 'u') { // current
         unsigned int verkeerdeIndex;
-        int64_t currentWaarde;
+        int currentWaarde;
         if (cmd[2] == ' ') {
             if (!probeMode) {
                 char* returnText = new char[60];
@@ -369,7 +369,7 @@ char* interpretCommand(const char * cmd) {
         }
     } else if (cmd[0] == 'o') { // offset
         unsigned int verkeerdeIndex;
-        int64_t offsetWaarde;
+        int offsetWaarde;
         if (cmd[1] == ' ') {
             if (!probeMode) {
                 char* returnText = new char[60];
@@ -545,7 +545,7 @@ namespace CalibrationWindow {
                 move(probeFields[i].inaVoltage.start.y, probeFields[i].inaVoltage.start.x);
                 printw("INA: %*d mV", probeFields[i].inaVoltage.length - 8, Probe::probe[i].readVoltage());
                 move(probeFields[i].inaCurrent.start.y, probeFields[i].inaCurrent.start.x);
-                printw("%*f uA", probeFields[i].inaCurrent.length - 3, Probe::probe[i].readCurrent());
+                printw("%*d uA", probeFields[i].inaCurrent.length - 3, Probe::probe[i].readCurrent());
                 refresh();
             }
         }

@@ -9,7 +9,7 @@ class Probe {
         INA ina;
         Probe(DAC_Address, INA_Address);
         // this contains the ratio between a bit and x mV, so that 4095 equals VCC
-        float voltBitRatio;
+        double voltBitRatio;
         Voltage vOffset = 0;
     public:
         static void init();
