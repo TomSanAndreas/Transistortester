@@ -358,6 +358,12 @@ char* interpretCommand(const char * cmd) {
             "Gelieve geen eenheden mee te geven, maar telkens de gewenste waarde in uA uit te drukken."
             , &cmd[verkeerdeIndex]);
             return returnText;
+        } else if (currentWaarde == 0) {
+            char* returnText = new char[50];
+            sprintf(returnText,
+            "Gelieve geen 0 uA als referentie te gebruiken."
+            , &cmd[verkeerdeIndex]);
+            return returnText;
         } else {
             unsigned int nieuweShuntWaarde = Probe::probe[probeNr - 1].adjustShuntUsingCurrent(currentWaarde) * 1000;
             char* returnText = new char[150];
