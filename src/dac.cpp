@@ -35,7 +35,7 @@ void DAC::setVoltage(UVoltage voltage) {
     // byte configBytes[] { (byte) ((currentVoltage >> 8) & 0x0F), (byte) currentVoltage };
     // Buffer configBuffer({configBytes, 3});
 
-    byte configBytes[] { (byte) ((currentVoltage >> 4) & 0x0F), (byte) currentVoltage };
+    byte configBytes[] { (byte) ((currentVoltage >> 8) & 0x0F), (byte) currentVoltage };
     Buffer configBuffer({ configBytes, 2 });
     queue(configBuffer);
     send();

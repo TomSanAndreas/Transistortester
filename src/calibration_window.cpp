@@ -41,18 +41,18 @@ struct ProbeField {
 
 struct TerminalBuffer {
     static TerminalBuffer* buffer;
-    static uint64_t nLinesMAX;
-    static uint64_t nLines;
+    static unsigned int nLinesMAX;
+    static unsigned int nLines;
 
     char* text = nullptr;
 };
 
 TerminalBuffer* TerminalBuffer::buffer = nullptr;
-uint64_t TerminalBuffer::nLinesMAX = 0;
-uint64_t TerminalBuffer::nLines = 0;
+unsigned int TerminalBuffer::nLinesMAX = 0;
+unsigned int TerminalBuffer::nLines = 0;
 
 ProbeField* probeFields;
-uint64_t max_x, max_y;
+unsigned int max_x, max_y;
 Coordinate cursorLocation(7, 0);
 bool cursorVisible = true; // aangeven of de cursor nu wel of niet zichtbaar is
 uint8_t cursorTick = 0; // elke keer wanneer deze 70 groot is, wordt de visibility gealterneerd
@@ -86,10 +86,10 @@ void initialiseScreen() {
         return;
     }
 
-    uint64_t t = (max_x - 12) / 3 - 2;
-    uint64_t r = 5 + t;
-    uint64_t s = (max_x - 12) / 6;
-    uint64_t k;
+    unsigned int t = (max_x - 12) / 3 - 2;
+    unsigned int r = 5 + t;
+    unsigned int s = (max_x - 12) / 6;
+    unsigned int k;
     for (uint8_t i = 0; i < 3; ++i) {
         k = r * i + 4;
         probeFields[i].dacVoltage.length = t;
@@ -193,12 +193,12 @@ void initialiseScreen() {
     printw(" Herstarten ");
 }
 
-int interpretNumber(const char * str, uint64_t* errorIndex) {
+int interpretNumber(const char * str, unsigned int* errorIndex) {
     int64_t result = 0;
-    uint64_t j = 0;
-    uint64_t len = strlen(str);
+    unsigned int j = 0;
+    unsigned int len = strlen(str);
     while (str[j] == '\0') ++j;
-    for (uint64_t i = j; i < len; ++i) {
+    for (unsigned int i = j; i < len; ++i) {
         if (str[i] >= '0' && str[i] <= '9') {
             result *= 10;
             result += str[i] - '0';
@@ -241,7 +241,7 @@ char* interpretCommand(const char * cmd) {
         }
         return returnText;
     } else if (cmd[0] == 'v') {
-        uint64_t verkeerdeIndex; // gebruikt voor errortekst indien nodig
+        unsigned int verkeerdeIndex; // gebruikt voor errortekst indien nodig
         int64_t voltage;
         if (cmd[1] == ' ') {
             if (probeMode) {
@@ -291,7 +291,7 @@ char* interpretCommand(const char * cmd) {
             return returnText;
         }
     } else if (cmd[0] == 's') {
-        uint64_t verkeerdeIndex;
+        unsigned int verkeerdeIndex;
         int64_t shuntWaarde;
         if (cmd[1] == ' ') {
             if (!probeMode) {
@@ -329,7 +329,7 @@ char* interpretCommand(const char * cmd) {
             return returnText;
         }
     } else if (cmd[0] == 'c' && cmd[1] == 'u') { // current
-        uint64_t verkeerdeIndex;
+        unsigned int verkeerdeIndex;
         int64_t currentWaarde;
         if (cmd[2] == ' ') {
             if (!probeMode) {
@@ -359,7 +359,7 @@ char* interpretCommand(const char * cmd) {
             , &cmd[verkeerdeIndex]);
             return returnText;
         } else {
-            uint64_t nieuweShuntWaarde = Probe::probe[probeNr - 1].adjustShuntUsingCurrent(currentWaarde) * 1000;
+            unsigned int nieuweShuntWaarde = Probe::probe[probeNr - 1].adjustShuntUsingCurrent(currentWaarde) * 1000;
             char* returnText = new char[150];
             sprintf(returnText,
             "De shuntwaarde voor probe %d is nu zodanig geregeld tot er %d uA gemeten wordt.\n"
@@ -368,7 +368,7 @@ char* interpretCommand(const char * cmd) {
             return returnText;
         }
     } else if (cmd[0] == 'o') { // offset
-        uint64_t verkeerdeIndex;
+        unsigned int verkeerdeIndex;
         int64_t offsetWaarde;
         if (cmd[1] == ' ') {
             if (!probeMode) {
@@ -406,7 +406,7 @@ char* interpretCommand(const char * cmd) {
             return returnText;
         }
     } else if (cmd[0] == 'c' && cmd[1] == 'a') { // kalibratie
-        uint64_t len = strlen(cmd);
+        unsigned int len = strlen(cmd);
         if (len == 2) {
             if (!probeMode) {
                 char* returnText = new char[60];
@@ -613,12 +613,12 @@ namespace CalibrationWindow {
                 char* returnStatement = interpretCommand(currentCommandBuffer);
                 // indien er een return statement is, is returnStatement niet de nullptr
                 if (returnStatement) {
-                    uint64_t index = 0;
-                    uint64_t previousNewline = 0;
+                    unsigned int index = 0;
+                    unsigned int previousNewline = 0;
                     while (returnStatement[index]) {
                         if (returnStatement[index] == '\n') {
                             TerminalBuffer::buffer[TerminalBuffer::nLines].text = new char[index - previousNewline + 1];
-                            for (uint64_t i = previousNewline; i < index; ++i) {
+                            for (unsigned int i = previousNewline; i < index; ++i) {
                                 TerminalBuffer::buffer[TerminalBuffer::nLines].text[i - previousNewline] = returnStatement[i];
                             }
                             TerminalBuffer::buffer[TerminalBuffer::nLines].text[index - previousNewline] = '\0';
@@ -637,7 +637,7 @@ namespace CalibrationWindow {
                 werase(cli_inner);
                 wrefresh(cli_inner);
                 // nieuwe lijnen plaatsen
-                uint64_t nPrint = TerminalBuffer::nLines > TerminalBuffer::nLinesMAX - 1 ? TerminalBuffer::nLinesMAX : TerminalBuffer::nLines + 1;
+                unsigned int nPrint = TerminalBuffer::nLines > TerminalBuffer::nLinesMAX - 1 ? TerminalBuffer::nLinesMAX : TerminalBuffer::nLines + 1;
                 for (uint8_t i = 1; i < nPrint; ++i) {
                     move(max_y - 4 - i, 5);
                     printw("%s", TerminalBuffer::buffer[TerminalBuffer::nLines - i].text);
