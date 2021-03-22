@@ -15,6 +15,22 @@
             "cStandard": "gnu17",
             "cppStandard": "gnu++14",
             "intelliSenseMode": "windows-gcc-x64"
+        },
+        {
+            "name": "Raspberry",
+            "includePath": [
+                "${workspaceFolder}/include/rpi",
+                "${workspaceFolder}/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "/bin/g++",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "linux-gcc-x64"
         }
     ],
     "version": 4
