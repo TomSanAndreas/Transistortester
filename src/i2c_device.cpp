@@ -1,20 +1,20 @@
 #include "i2c_device.hpp"
 #ifdef USING_RPI
-#include <wiringPiI2C.h>
+#include "pi_i2c.hpp"
 #include <unistd.h>
 #else
-#include "PiI2CApi.hpp"
+#include "pi_i2c_api.hpp"
 #endif
 
 I2C_Device::I2C_Device(byte address, byte bufferSize)
 : address(address)
-, fileHandle(wiringPiI2CSetup(address))
+, fileHandle(setup(address))
 , bytesToSend({new byte[bufferSize], bufferSize})
 , currentSendBufferSize(0)
 , bytesReceived({new byte[bufferSize], bufferSize})
 , currentReceivedBufferSize(0) {
     #ifdef DEBUG_ACTIVE
-    if (wiringPiI2CWrite(fileHandle, 0x00) == -1) {
+    if (!hasResponded(fileHandle)) {
         debugStatus |= (uint64_t) Status::NoResponse | (uint64_t) Status::Error;
         printStatus();
     } else {
