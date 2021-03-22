@@ -37,7 +37,7 @@ void Probe::setOffset(Voltage offset) {
 
 void Probe::setVoltage(UVoltage newVoltage) {
     currentVoltageSet = newVoltage;
-    dac.setVoltage(newVoltage / voltBitRatio);
+    dac.setVoltage(newVoltage / voltBitRatio + .5); // the addition of 0.5 makes it so x.5 and up would round up when casted to an int
 }
 
 void Probe::setShunt(float newShunt) {

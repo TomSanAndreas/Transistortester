@@ -196,18 +196,24 @@ void initialiseScreen() {
 int interpretNumber(const char * str, unsigned int* errorIndex) {
     int result = 0;
     unsigned int j = 0;
+    bool negative = false;
     unsigned int len = strlen(str);
     while (str[j] == '\0') ++j;
+    if (str[j] == '-') {
+        negative = true;
+        ++j;
+    }
     for (unsigned int i = j; i < len; ++i) {
         if (str[i] >= '0' && str[i] <= '9') {
             result *= 10;
             result += str[i] - '0';
         } else {
             *errorIndex = i;
-            return -1;
+            return 0;
         }
     }
-    return result;
+    *errorIndex = -1;
+    return negative? -result : result;
 }
 
 char* interpretCommand(const char * cmd) {
@@ -265,12 +271,19 @@ char* interpretCommand(const char * cmd) {
                 return returnText;
             }
         }
-        if (voltage == -1) {
+        if (verkeerdeIndex != -1) {
             char* returnText = new char[150];
             sprintf(returnText,
             "Ongekende spanning: %s.\n"
             "Gelieve geen eenheden mee te geven, maar telkens de gewenste waarde in mV uit te drukken."
             , &cmd[verkeerdeIndex]);
+            return returnText;
+        } else if (voltage < 0) {
+            char* returnText = new char[100];
+            sprintf(returnText,
+            "Ongeldige spanning: %d.\n"
+            "De spanning kan enkel positief zijn."
+            , voltage);
             return returnText;
         } else if (voltage <= 5000) {
             // spanning instellen
@@ -286,7 +299,8 @@ char* interpretCommand(const char * cmd) {
         } else {
             char* returnText = new char[100];
             sprintf(returnText,
-            "Spanning %d mV is te groot. Maximumspanning bedraagd 5000mV."
+            "Ongeldige spanning: %dmV.\n"
+            "Spanning is te groot. Maximumspanning bedraagd 5000mV."
             , voltage);
             return returnText;
         }
@@ -313,7 +327,7 @@ char* interpretCommand(const char * cmd) {
             }
             shuntWaarde = interpretNumber(&cmd[6], &verkeerdeIndex);
         }
-        if (shuntWaarde == -1) {
+        if (verkeerdeIndex != -1) {
             char* returnText = new char[150];
             sprintf(returnText,
             "Ongekende shuntwaarde: %s.\n"
@@ -351,7 +365,7 @@ char* interpretCommand(const char * cmd) {
             }
             currentWaarde = interpretNumber(&cmd[8], &verkeerdeIndex);
         }
-        if (currentWaarde == -1) {
+        if (verkeerdeIndex != -1) {
             char* returnText = new char[150];
             sprintf(returnText,
             "Ongekende stroom: %s.\n"
@@ -396,7 +410,7 @@ char* interpretCommand(const char * cmd) {
             }
             offsetWaarde = interpretNumber(&cmd[7], &verkeerdeIndex);
         }
-        if (offsetWaarde == -1) {
+        if (verkeerdeIndex != -1) {
             char* returnText = new char[150];
             sprintf(returnText,
             "Ongekende offset: %s.\n"
@@ -673,7 +687,7 @@ namespace CalibrationWindow {
                 break;
             }
             default: {
-                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == ' ') {
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == ' ' || c == '-') {
                     if (cursorLocation.x < 51) {
                         move(cursorLocation.y, cursorLocation.x++);
                         printw("%c", (char) c);
