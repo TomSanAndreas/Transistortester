@@ -3,6 +3,13 @@
 #include "dac.hpp"
 #include "ina.hpp"
 
+struct MeasureResult {
+    UVoltage usedVoltage;
+    UVoltage minV = 32000, avgV, maxV = 0;
+    Current minA = 32000, avgA, maxA = 0;
+    MeasureResult() {}
+};
+
 class Probe {
     private:
         DAC dac;
@@ -11,6 +18,8 @@ class Probe {
         // this contains the ratio between a bit and x mV, so that 4095 equals VCC
         double voltBitRatio;
         Voltage vOffset = 0;
+        UVoltage currentVoltageBitsSet = 0;
+        UVoltage exactVoltageLUT[4096];
     public:
         static void init();
         static void destroy();
@@ -41,6 +50,9 @@ class Probe {
         Current readCurrent();
         // read N samples and take average, in µA
         Current readAverageCurrent(unsigned int nSamples);
+        
+        // get a detailed result, with data from N samples
+        MeasureResult doFullMeasure(unsigned int nSamples);
 
         // de huidige spanning van de DAC
         UVoltage currentVoltageSet;

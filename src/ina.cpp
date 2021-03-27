@@ -35,7 +35,9 @@ Voltage INA::readShuntVoltage() {
     sendAndAwait(2);
     const Buffer& received = readResponse();
     // FIXME indices might be inverted, description and diagram aren't consistent on page 20
-    return ((received.data[1] << 8) | received.data[0]) * 2.5;
+    short receivedData = (received.data[1] << 8) | received.data[0];
+    Voltage shuntMicroVoltage = receivedData * 2.5;
+    return shuntMicroVoltage;
 }
 
 // page 16: 1.25mV / bit for bus voltage

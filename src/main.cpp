@@ -3,13 +3,11 @@
 #include <stdio.h>
 
 #include "calibration_setup.hpp"
+#include "user_interface.hpp"
 
 #ifdef COMPILE_WITH_CALIBRATION_WINDOW
 #include "calibration_window.hpp"
 #endif
-
-// compileren via "make"
-
 
 int main(int argc, char** argv) {
     if (argc == 2) {
@@ -48,9 +46,9 @@ int main(int argc, char** argv) {
     } else if (argc > 2) {
         printf("Gelieve maximaal 1 extra argument mee te geven. Zie argument <-h, --help> voor meer uitleg.\n");
     } else {
-        // TODO: start grafische applicatie voor gewoon gebruik
-        printf("Deze functionaliteit zit nog niet ingebouwd.\n");
+        Probe::init();
+        UserInterface::init(&argc, &argv);
+        Probe::destroy();
     }
-
     return 0;
 }
