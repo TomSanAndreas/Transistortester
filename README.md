@@ -2,7 +2,7 @@
 Deze code dient gebruikt te worden met de Transistortester PCB en Raspberry Pi. Via de I²C-bus worden de verschillende componenten gebruikt. Het is ook mogelijk de code (en interface(s)) te testen op een Windows (of Linux) computer, al is de volledige functionaliteit natuurlijk niet beschikbaar.
 ## Functionaliteit
 Zie ```transistortester -h``` voor een lijst van mogelijke functies. Afhankelijk van de configuraties zijn bepaalde functies al dan niet beschikbaar. Hier worden de functies nog extra toegelicht:
- - Kalibratiescherm: Via een commandline-interface en een reeks aan commando's is het mogelijk de 3 probe's te besturen: het instellen van een voltage, nameten van de probe-spanning & -stroom, instellen van shuntweerstand en aanmaken van een kalibratiebestand is hier mogelijk. Deze wordt telkens ingelezen wanneer de transistortester wordt gestart, zodanig dat een nauwkeurige meting mogelijk is.
+ - Kalibratiescherm: Via een commandline-interface en een reeks aan commando's is het mogelijk de 3 probes te besturen: het instellen van een voltage, nameten van de probe-spanning & -stroom, instellen van shuntweerstand en aanmaken van een kalibratiebestand is hier mogelijk. Dit kalibratiebestand wordt telkens ingelezen wanneer de transistortester wordt gestart, zodanig dat een nauwkeurige meting mogelijk is.
  - Start (hetzelfde als enkel de binary te starten): Via een GTK-interface kan de standaardtoepassing van de transistortester worden gebruikt. Via de eenvoudige interface is de gebruiker in staat om de gebruikte component (na wat basis-gegevens) te herkennen en na te meten.
  - Help: Een beknopte versie van deze tekst wordt weergegeven.
 ## Installatie
