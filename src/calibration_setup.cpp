@@ -80,9 +80,12 @@ void CalibrationSetup::update() {
             sleep(5);
             UVoltage voltage = Probe::probe[Combinatie::combinatie[i].first].readAverageVoltage(5) - Probe::probe[Combinatie::combinatie[i].second].readAverageVoltage(5);
             Current expectedCurrent = voltage / (r / 1000);
-            float shunt1 = - ((float) Probe::probe[Combinatie::combinatie[i].first].readAverageShuntVoltage(10)) / expectedCurrent;
-            float shunt2 = ((float) Probe::probe[Combinatie::combinatie[i].second].readAverageShuntVoltage(10)) / expectedCurrent;
-            printf("Shuntwaardes: %f voor probe 1, %f voor probe 2.\n", shunt1, shunt2);
+            float vShunt1 = (float) Probe::probe[Combinatie::combinatie[i].first].readAverageShuntVoltage(10);
+            float vShunt2 = (float) Probe::probe[Combinatie::combinatie[i].second].readAverageShuntVoltage(10);
+            float shunt1 = - vShunt1 / expectedCurrent;
+            float shunt2 = vShunt2 / expectedCurrent;
+            printf("Shuntwaardes: %f voor probe 1, %f voor probe 2.\n"
+                   "Voltages: %d voor probe 1, %d voor probe 2.", shunt1, shunt2, vShunt1, vShunt2);
         }
     }
     // printf("Afwijkingen worden bepaald.\n");

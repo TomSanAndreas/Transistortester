@@ -24,7 +24,7 @@ Current INA::readCurrent() {
 }
 
 // page 16: 2.5µV / bit for shunt voltage, table at page 17 confirms this
-Current INA::readShuntVoltage() {
+Voltage INA::readShuntVoltage() {
     // TODO implement this using READ_IIN / READ_IOUT
     // now implemented using MFR_READ_VSHUNT
     // set the MFR_READ_VSHUNT register
