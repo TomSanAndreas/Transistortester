@@ -77,7 +77,7 @@ void CalibrationSetup::update() {
         printf("Kalibreren.\n");
         for (UVoltage v = 100; v <= 5000; v += 100) {
             Probe::probe[Combinatie::combinatie[i].first].setVoltage(v);
-            sleep(5);
+            sleep_ms(5);
             UVoltage voltage = Probe::probe[Combinatie::combinatie[i].first].readAverageVoltage(5) - Probe::probe[Combinatie::combinatie[i].second].readAverageVoltage(5);
             Current expectedCurrent = voltage / (r / 1000);
             float vShunt1 = (float) Probe::probe[Combinatie::combinatie[i].first].readAverageShuntVoltage(10);

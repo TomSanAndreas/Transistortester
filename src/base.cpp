@@ -1,7 +1,7 @@
 #include "base.hpp"
 // Stackoverflow: "Is there an alternative sleep function in C to milliseconds?"
 // Slaap voor ms milliseconden.
-int sleep(long ms) {
+int sleep_ms(long ms) {
     timespec ts;
     int res;
 

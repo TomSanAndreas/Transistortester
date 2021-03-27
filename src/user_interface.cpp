@@ -45,7 +45,7 @@ void measure() {
     Probe::probe[start.second].setVoltage(0);
     for (unsigned int i = 1; i < 51; ++i) {
         Probe::probe[start.first].setVoltage(i * 100);
-        sleep(1);
+        sleep_ms(1);
         data1 = Probe::probe[start.first].doFullMeasure(5);
         data2 = Probe::probe[start.second].doFullMeasure(5);
         for (unsigned char j = 0; j < 3; ++j) {

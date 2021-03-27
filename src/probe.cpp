@@ -62,7 +62,7 @@ Voltage Probe::readAverageShuntVoltage(unsigned int nSamples) {
     long long sum = 0;
     for (unsigned int i = 0; i < nSamples; ++i) {
         sum += ina.readShuntVoltage();
-        sleep(1);
+        sleep_ms(1);
     }
     return sum / nSamples;
 }
@@ -75,7 +75,7 @@ UVoltage Probe::readAverageVoltage(unsigned int nSamples) {
     unsigned long long sum = 0;
     for (unsigned int i = 0; i < nSamples; ++i) {
         sum += ina.readVoltage();
-        sleep(1);
+        sleep_ms(1);
     }
     return sum / nSamples + vOffset;
 }
@@ -88,7 +88,7 @@ Current Probe::readAverageCurrent(unsigned int nSamples) {
     long long sum = 0;
     for (unsigned int i = 0; i < nSamples; ++i) {
         sum += ina.readCurrent();
-        sleep(1);
+        sleep_ms(1);
     }
     return sum / nSamples;
 }
@@ -116,7 +116,7 @@ MeasureResult Probe::doFullMeasure(unsigned int nSamples) {
         }
         sumA += measuredA;
         sumV += measuredV;
-        sleep(1);
+        sleep_ms(1);
     }
     result.avgA = sumA / nSamples;
     result.avgV = sumV / nSamples;

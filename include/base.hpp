@@ -5,4 +5,4 @@
 #include <time.h>  // voor sleep()
 #include <errno.h> // voor sleep()
 
-int sleep(long ms);
+int sleep_ms(long ms);
