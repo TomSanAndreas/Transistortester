@@ -36,22 +36,23 @@ float getResistance(short lowerBound, char lowerBoundUnit, short upperBound, cha
     "(zo precies mogelijk en eindigend op [R] of k): ",
     lowerBound, lowerBoundUnit, upperBound,
     upperBoundUnit);
-    gets(buffer);
+    fgets(buffer, 49, stdin);
     unsigned int i = 0;
     float result = 0;
     unsigned int decimalCorrection = 1;
     bool hasPassedDecimalPoint = false;
+    if (buffer[i] == '\n') { return -1; }
     while (buffer[i] == ' ') { ++i; }
-    while (buffer[i] != '\0') {
+    while (buffer[i] != '\n') {
         if (buffer[i] >= '0' && buffer[i] <= '9') {
             result *= 10;
             result += buffer[i] - '0';
             if (hasPassedDecimalPoint) {
                 decimalCorrection *= 10;
             }
-        } else if ((buffer[i] == 'r' || buffer[i] == 'R') && buffer[i + 1] == '\0') {
+        } else if ((buffer[i] == 'r' || buffer[i] == 'R') && buffer[i + 1] == '\n') {
             return result / decimalCorrection;
-        } else if ((buffer[i] == 'k' || buffer[i] == 'K') && buffer[i + 1] == '\0') {
+        } else if ((buffer[i] == 'k' || buffer[i] == 'K') && buffer[i + 1] == '\n') {
             return result * 1000 / decimalCorrection;
         } else if ((buffer[i] == '.' || buffer[i] == ',') && !hasPassedDecimalPoint) {
             hasPassedDecimalPoint = true;
