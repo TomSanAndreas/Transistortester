@@ -50,8 +50,17 @@ float Probe::adjustShuntUsingCurrent(Current expectedCurrent) {
     return ina.rShunt;
 }
 
-Voltage Probe::getShuntVoltage() {
+Voltage Probe::readShuntVoltage() {
     return ina.readShuntVoltage();
+}
+
+Voltage Probe::readAverageShuntVoltage(unsigned int nSamples) {
+    long long sum = 0;
+    for (unsigned int i = 0; i < nSamples; ++i) {
+        sum += ina.readShuntVoltage();
+        sleep(1);
+    }
+    return sum / nSamples;
 }
 
 UVoltage Probe::readVoltage() {

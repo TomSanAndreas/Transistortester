@@ -28,9 +28,11 @@ class Probe {
         void setShunt(float newShunt);
         // expectedCurrent is in µA
         float adjustShuntUsingCurrent(Current expectedCurrent);
+        
         // get shunt voltage in µV
-        Voltage getShuntVoltage();
-
+        Voltage readShuntVoltage();
+        // read N samples and take average, in µV
+        Voltage readAverageShuntVoltage(unsigned int nSamples);
         // voltage is in mV
         UVoltage readVoltage();
         // read N samples and take average, in mV
