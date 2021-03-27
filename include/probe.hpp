@@ -28,11 +28,17 @@ class Probe {
         void setShunt(float newShunt);
         // expectedCurrent is in µA
         float adjustShuntUsingCurrent(Current expectedCurrent);
+        // get shunt voltage in µV
+        Voltage getShuntVoltage();
 
         // voltage is in mV
         UVoltage readVoltage();
+        // read N samples and take average, in mV
+        UVoltage readAverageVoltage(unsigned int nSamples);
         // current is in µA
         Current readCurrent();
+        // read N samples and take average, in µA
+        Current readAverageCurrent(unsigned int nSamples);
 
         // de huidige spanning van de DAC
         UVoltage currentVoltageSet;
