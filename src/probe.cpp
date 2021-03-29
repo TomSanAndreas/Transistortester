@@ -21,7 +21,8 @@ void Probe::calibrate() {
     // fill up LUT as voltage reference during measurements
     for (unsigned int i = 0; i < 4096; ++i) {
         dac.setVoltage(i);
-        sleep_ms(1);
+        // takes too long with a delay
+        // sleep_ms(1);
         exactVoltageLUT[i] = readAverageVoltage(3);
     }
     // determine voltBitRatio, max voltage is already set in for-loop
@@ -34,6 +35,7 @@ void Probe::calibrate() {
 }
 
 void Probe::turnOff() {
+    isDacTurnedOn = false;
     dac.turnOff();
 }
 
@@ -42,6 +44,10 @@ void Probe::setOffset(Voltage offset) {
 }
 
 void Probe::setVoltage(UVoltage newVoltage) {
+    if (!isDacTurnedOn) {
+        dac.turnOn();
+        isDacTurnedOn = true;
+    }
     currentVoltageSet = newVoltage;
     dac.setVoltage(newVoltage / voltBitRatio + .5); // the addition of 0.5 makes it so x.5 and up would round up when casted to an int
     currentVoltageBitsSet = newVoltage / voltBitRatio + .5;

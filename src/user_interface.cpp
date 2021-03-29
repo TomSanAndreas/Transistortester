@@ -382,7 +382,7 @@ void measure() {
 
 void determineType() {
     // check if DUT is a resistor
-    for (unsigned char i = 0; i < 6; ++i) {
+    for (unsigned char i = 0; i < 3; ++i) {
         // turn off the third probe
         ProbeCombination::possibleCombinations[i].third->turnOff();
         // set the second probe as GND
@@ -493,6 +493,9 @@ void UserInterface::init(int* argc, char *** argv) {
     // init GUI
     GtkBuilder* builder;
     GtkWidget* window,* graph;
+    #ifdef USING_RPI
+    XInitThreads();
+    #endif
     gtk_init(argc, argv);
     builder = gtk_builder_new_from_file("../ui/landing_page.xml");
     window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));

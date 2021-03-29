@@ -20,6 +20,7 @@ class Probe {
         Voltage vOffset = 0;
         UVoltage currentVoltageBitsSet = 0;
         UVoltage exactVoltageLUT[4096];
+        bool isDacTurnedOn = true;
     public:
         static void init();
         static void destroy();

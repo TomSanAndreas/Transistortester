@@ -30,6 +30,13 @@ void DAC::turnOff() {
     send();
 }
 
+void DAC::turnOn() {
+    byte configBytes[] { 0b01000000, (byte) (currentVoltage >> 4), (byte) ((currentVoltage << 4) & 0xF0) };
+    Buffer configBuffer({configBytes, 3});
+    queue(configBuffer);
+    send();
+}
+
 void DAC::setVoltage(UVoltage voltage) {
     if (currentVoltage == voltage) {
         return;

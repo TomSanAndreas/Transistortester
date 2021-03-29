@@ -34,4 +34,6 @@ class DAC : public I2C_Device {
         void setVoltage(UVoltage rawValue);
         // zet de DAC op power-down mode, waardoor deze de grond verbind met een weerstand van ongeveer 500K
         void turnOff();
+        // zet de DAC aan, zodat setVoltage() correct werkt
+        void turnOn();
 };
