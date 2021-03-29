@@ -309,10 +309,7 @@ extern "C" {
         gtk_widget_destroy((GtkWidget*) calibrationDialog.self);
     }
     void determine_type(GtkWidget* widget, gpointer user_data) {
-        char buffer[10];
         determineType();
-        sprintf(buffer, "Type: %d", (int) currentComponent.type);
-        gtk_label_set_text(mainWindow.bottomPanel.graphWindow.graphTitle, buffer);
     }
     #endif
 }
@@ -398,6 +395,7 @@ void determineType() {
         MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
         MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
         // check if current is big enough (max ~20K resistor), with a 1% margin of error
+        printf("CURRENT_1: %d, CURRENT_2: %d, ALMOST_EQUAL: %d", results1.avgA, results2.avgA, ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01));
         if (results1.avgA < -25 && results2.avgA > 25 && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
             currentComponent.type = ComponentType::RESISTOR;
             currentComponent.data.resistorData.connectedPins = ProbeCombination::possibleCombinations[i];
