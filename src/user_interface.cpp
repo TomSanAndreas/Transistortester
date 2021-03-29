@@ -1,6 +1,10 @@
 #include "user_interface.hpp"
 #include <thread>
 
+#ifdef USING_RPI
+#include <X11/Xlib.h>
+#endif
+
 // determine if both values are at least almost equal, only 1% different max
 #define ALMOSTEQUAL(value1, value2, percentage) ABS(ABS(value1) - ABS(value2)) < percentage * ABS(value1)
 
@@ -24,7 +28,7 @@ enum ComponentType {
     MOSFET_NMOS    = 5,
     MOSFET_PMOS    = 6,
     MOSFET_JFET    = 7,
-    UNKNOWN_DEVICE = 15
+    UNKNOWN_DEVICE = 8
 };
 
 struct ResistorData {
@@ -191,10 +195,15 @@ struct ComponentLayout {
     static const char* pinoutNames[];
     GtkImage* symbol;
     GtkLabel* componentName;
+    static const char* possibleComponentNames[];
 };
 
 const char* ComponentLayout::pinoutNames[] = {
     "pin_1_name", "pin_2_name", "pin_3_name"
+};
+
+const char* ComponentLayout::possibleComponentNames[] = {
+    "Weerstand", "Condensator", "Diode", "Bipolaire Transistor (NPN)", "Bipolaire Transistor (PNP)", "MOSFET (NMOS)", "MOSFET (PMOS)", "MOSFET (PMOS)", "Ongekend apparaat"
 };
 
 struct TopPanel {
@@ -261,10 +270,8 @@ extern "C" {
         gtk_widget_destroy((GtkWidget*) calibrationDialog.self);
     }
     G_MODULE_EXPORT void determine_type(GtkWidget* widget, gpointer user_data) {
-        char buffer[10];
         determineType();
-        sprintf(buffer, "Type: %d", (int) currentComponent.type);
-        gtk_label_set_text(mainWindow.bottomPanel.graphWindow.graphTitle, buffer);
+        gtk_label_set_text(mainWindow.topPanel.component.componentName, ComponentProperties::propertyNames[currentComponent.type]);
     }
     #elif USING_RPI
     void destroy_signal(GtkWidget* w, gpointer user_data) {

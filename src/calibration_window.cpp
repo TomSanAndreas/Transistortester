@@ -219,12 +219,14 @@ int interpretNumber(const char * str, unsigned int* errorIndex) {
 void calibrateProgress(double progress) {
     if (progress < .99) {
         char buffer[25];
-        sprintf(buffer, "Kalibreren... %.2f", progress * 100);
+        sprintf(buffer, "Kalibreren... %.2f%", progress * 100);
         move(cursorLocation.y, 5);
         printw(buffer);
+        refresh();
     } else {
         move(cursorLocation.y, 5);
         printw("                         ");
+        refresh();
     }
 }
 

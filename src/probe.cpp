@@ -1,7 +1,4 @@
 #include "probe.hpp"
-#ifdef USING_RPI
-#include <X11/Xlib.h>
-#endif
 #include <stdio.h>
 Probe* Probe::probe = nullptr;
 
