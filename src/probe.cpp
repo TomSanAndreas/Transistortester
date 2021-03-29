@@ -14,7 +14,7 @@ Probe::Probe(DAC_Address dac, INA_Address ina)
 : dac(dac)
 , ina(ina) {}
 
-void Probe::calibrate(void (*progressIndicator)(double PROGRESS)) {
+void Probe::calibrate(void (*updateProgress)(), double* progress) {
     // keep track of the original voltage
     UVoltage original = dac.currentVoltage;
     // fill up LUT as voltage reference during measurements
@@ -22,7 +22,8 @@ void Probe::calibrate(void (*progressIndicator)(double PROGRESS)) {
         dac.setVoltage(i);
         exactVoltageLUT[i] = readAverageVoltage(3);
         // update progress
-        progressIndicator(i / 4096.0);
+        *progress = i / 4096.0;
+        updateProgress();
     }
     // determine voltBitRatio, max voltage is already set in for-loop
     // get max voltage

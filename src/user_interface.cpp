@@ -11,9 +11,12 @@
 void calibrate();
 void destroy();
 void determineType();
+// flags used in the various threads
+bool determenRequested = false, measurementRequested = false, programAlive = true, calibrated = false;
 
 struct ProbeCombination {
     Probe* first,* second,* third;
+    unsigned int firstPinNumber, secondPinNumber, thirdPinNumber;
     static ProbeCombination* possibleCombinations;
 };
 
@@ -123,7 +126,7 @@ int Graph::minY;
 
 struct CalibrationDialog {
     GtkDialog* self;
-    GtkButton* dialoge_close_button,* start_button;
+    GtkButton* dialog_close_button,* start_button;
     GtkProgressBar* progress_bar;
 };
 
@@ -224,7 +227,7 @@ Graph graphs[3];
 GdkRGBA colors[3] { {.75, 1, .75, 1}, {1, .75, .75, 1}, {1, .75, .75, 1} };
 CalibrationDialog calibrationDialog;
 
-std::thread calibrationThread;
+std::thread calibrationThread, measurementThread;
 
 extern "C" {
     #ifdef WINDOWS
@@ -270,8 +273,7 @@ extern "C" {
         gtk_widget_destroy((GtkWidget*) calibrationDialog.self);
     }
     G_MODULE_EXPORT void determine_type(GtkWidget* widget, gpointer user_data) {
-        determineType();
-        gtk_label_set_text(mainWindow.topPanel.component.componentName, ComponentLayout::possibleComponentNames[currentComponent.type]);
+        determenRequested = true;
     }
     #elif USING_RPI
     void destroy_signal(GtkWidget* w, gpointer user_data) {
@@ -316,8 +318,7 @@ extern "C" {
         gtk_widget_destroy((GtkWidget*) calibrationDialog.self);
     }
     void determine_type(GtkWidget* widget, gpointer user_data) {
-        determineType();
-        gtk_label_set_text(mainWindow.topPanel.component.componentName, ComponentLayout::possibleComponentNames[currentComponent.type]);
+        determenRequested = true;
     }
     #endif
 }
@@ -406,35 +407,13 @@ void determineType() {
         if ((results1.avgA < -25 && results2.avgA > 25) || (results1.avgA > 25 && results2.avgA < -25) && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
             currentComponent.type = ComponentType::RESISTOR;
             currentComponent.data.resistorData.connectedPins = ProbeCombination::possibleCombinations[i];
-            currentComponent.data.resistorData.resistance = (results1.avgV - results2.avgV) / (results2.avgA);
             return;
         }
     }
     // check if DUT is a capacitor
     //TODO
-    // check if DUT is a diode
-    // FIXME
-    // for (unsigned char i = 0; i < 6; ++i) {
-    //     // turn off the third probe
-    //     ProbeCombination::possibleCombinations[i].third->turnOff();
-    //     // set the second probe as GND
-    //     ProbeCombination::possibleCombinations[i].second->setVoltage(0);
-    //     // set the first probe as VCC (750 mV)
-    //     ProbeCombination::possibleCombinations[i].first->setVoltage(750);
-    //     // wait for a short time
-    //     sleep_ms(10);
-    //     // check if a valid voltage drop occured, with a 10% margin of error
-    //     MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
-    //     MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
-    //     if (ALMOSTEQUAL(results1.avgV - results2.avgV, 700, 0.1)) {
-    //         currentComponent.type = ComponentType::DIODE;
-    //         currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
-    //         currentComponent.data.diodeData.voltageDrop = results1.avgV - results2.avgV;
-    //         return;
-    //     }
-    // }
     // check if DUT is a BJT NPN transistor
-    for (unsigned char i = 0; i < 3; ++i) {
+    for (unsigned char i = 0; i < 6; ++i) {
         // first pin is considered to be the collector, second as base and third as emitter
         // set emitter as GND, so that VBE = 0.7V
         ProbeCombination::possibleCombinations[i].third->setVoltage(0);
@@ -467,7 +446,7 @@ void determineType() {
         }
     }
     // check if DUT is a BJT PNP transistor
-    for (unsigned char i = 0; i < 3; ++i) {
+    for (unsigned char i = 0; i < 6; ++i) {
         // first pin is considered to be the collector, second as base and third as emitter
         // set emitter as 1000mV, so that VBE = -0.7V
         ProbeCombination::possibleCombinations[i].third->setVoltage(1000);
@@ -487,14 +466,41 @@ void determineType() {
             if (results2.avgA > 0 && results1.avgA > 0 && results3.avgA < 0) {
                 currentComponent.type = ComponentType::BJT_NPN;
                 currentComponent.data.bjtNpnData.baseEmitterPins = {
-                    ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].first
+                    ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].firstPinNumber
                 };
                 currentComponent.data.bjtNpnData.collectorEmitterPins = {
-                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].second
+                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber
                 };
                 currentComponent.data.bjtNpnData.collectorBasePins = {
-                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third
+                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber
                 };
+                return;
+            }
+        }
+    }
+    // check if DUT is a diode
+    for (unsigned char i = 0; i < 3; ++i) {
+        // turn off the third probe
+        ProbeCombination::possibleCombinations[i].third->turnOff();
+        // set the second probe as GND
+        ProbeCombination::possibleCombinations[i].second->setVoltage(0);
+        // set the first probe as VCC (750 mV)
+        ProbeCombination::possibleCombinations[i].first->setVoltage(750);
+        // wait for a short time
+        sleep_ms(10);
+        // check if a valid voltage drop occured, with a 10% margin of error, and current flows
+        MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
+        MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
+        if (ALMOSTEQUAL(results1.avgV - results2.avgV, 700, 0.1) && results1.avgA < 100 && results2.avgA > 100) {
+            // check if no current flows in reverse bias
+            ProbeCombination::possibleCombinations[i].second->setVoltage(750);
+            ProbeCombination::possibleCombinations[i].first->setVoltage(0);
+            sleep_ms(10);
+            results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
+            results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
+            if (ABS(results1.avgA) < 100 && ABS(results2.avgA) < 100) {
+                currentComponent.type = ComponentType::DIODE;
+                currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
                 return;
             }
         }
@@ -508,12 +514,12 @@ void UserInterface::init(int* argc, char *** argv) {
     Probe::init();
 
     ProbeCombination::possibleCombinations = new ProbeCombination[6] {
-        { &Probe::probe[0], &Probe::probe[1], &Probe::probe[2] }, // 0, 1, 2
-        { &Probe::probe[1], &Probe::probe[2], &Probe::probe[0] }, // 1, 2, 0
-        { &Probe::probe[0], &Probe::probe[2], &Probe::probe[1] }, // 0, 2, 1
-        { &Probe::probe[1], &Probe::probe[0], &Probe::probe[2] }, // 1, 0, 2
-        { &Probe::probe[2], &Probe::probe[1], &Probe::probe[0] }, // 2, 1, 0
-        { &Probe::probe[2], &Probe::probe[0], &Probe::probe[1] }, // 2, 0, 1
+        { &Probe::probe[0], &Probe::probe[1], &Probe::probe[2], 1, 2, 3 },
+        { &Probe::probe[1], &Probe::probe[2], &Probe::probe[0], 2, 3, 1 },
+        { &Probe::probe[0], &Probe::probe[2], &Probe::probe[1], 1, 3, 2 },
+        { &Probe::probe[1], &Probe::probe[0], &Probe::probe[2], 2, 1, 3 },
+        { &Probe::probe[2], &Probe::probe[1], &Probe::probe[0], 3, 2, 1 },
+        { &Probe::probe[2], &Probe::probe[0], &Probe::probe[1], 3, 1, 2 }
     };
 
     // init GUI
@@ -576,23 +582,135 @@ void UserInterface::init(int* argc, char *** argv) {
 
     calibrationDialog.self = GTK_DIALOG(gtk_builder_get_object(builder, "calibration_dialog"));
     calibrationDialog.progress_bar = GTK_PROGRESS_BAR(gtk_builder_get_object(builder, "calibrate_progress"));
-    calibrationDialog.dialoge_close_button = GTK_BUTTON(gtk_builder_get_object(builder, "close_dialog"));
+    calibrationDialog.dialog_close_button = GTK_BUTTON(gtk_builder_get_object(builder, "close_dialog"));
     calibrationDialog.start_button = GTK_BUTTON(gtk_builder_get_object(builder, "calibrate"));
+
+    #ifdef USING_RPI
+    // make it so the close button cant be pressed when using the RPI without calibration first
+    gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialog_close_button, FALSE);
+    #endif
+
+    measurementThread = std::thread([]() {
+        while (!calibrated && programAlive) {
+            sleep_ms(100);
+        }
+        while (programAlive) {
+            if (determenRequested) {
+                determineType();
+                // main thread
+                g_idle_add(G_SOURCE_FUNC(+[]() {
+                    gtk_label_set_text(mainWindow.topPanel.component.componentName, ComponentLayout::possibleComponentNames[currentComponent.type]);
+                    char buffer[15];
+                    switch (currentComponent.type) {
+                        case RESISTOR: {
+                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/resistor.png");
+                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 0.0);
+                            sprintf(buffer, "Pin %d", currentComponent.data.resistorData.connectedPins.firstPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
+                            sprintf(buffer, "Pin %d", currentComponent.data.resistorData.connectedPins.secondPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
+                            break;
+                        }
+                        case CAPACITOR: {
+                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/capacitor.png");
+                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 0.0);
+                            sprintf(buffer, "Pin %d", currentComponent.data.capacitorData.connectedPins.firstPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
+                            sprintf(buffer, "Pin %d", currentComponent.data.capacitorData.connectedPins.secondPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
+                            break;
+                        }
+                        case DIODE: {
+                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/diode.png");
+                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 0.0);
+                            sprintf(buffer, "Pin %d", currentComponent.data.diodeData.connectedPins.firstPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
+                            sprintf(buffer, "Pin %d", currentComponent.data.diodeData.connectedPins.secondPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
+                            break;
+                        }
+                        case BJT_NPN: {
+                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/bjt_npn.png");
+                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
+                            sprintf(buffer, "Pin %d: collector", currentComponent.data.bjtNpnData.collectorBasePins.firstPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
+                            sprintf(buffer, "Pin %d: basis", currentComponent.data.bjtNpnData.collectorBasePins.secondPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[1], buffer);
+                            sprintf(buffer, "Pin %d: emitter", currentComponent.data.bjtNpnData.collectorBasePins.thirdPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
+                            break;
+                        }
+                        case BJT_PNP: {
+                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/bjt_pnp.png");
+                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
+                            sprintf(buffer, "Pin %d: collector", currentComponent.data.bjtPnpData.collectorBasePins.firstPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
+                            sprintf(buffer, "Pin %d: basis", currentComponent.data.bjtPnpData.collectorBasePins.secondPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[1], buffer);
+                            sprintf(buffer, "Pin %d: emitter", currentComponent.data.bjtPnpData.collectorBasePins.thirdPinNumber);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
+                            break;
+                        }
+                        case MOSFET_NMOS: {
+                            // FIXME
+                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/unknown.png");
+                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
+                            break;
+                        }
+                        case MOSFET_PMOS: {
+                            // FIXME
+                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/unknown.png");
+                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
+                            break;
+                        }
+                        case MOSFET_JFET: {
+                            // FIXME
+                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/unknown.png");
+                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
+                            break;
+                        }
+                        case UNKNOWN_DEVICE:
+                        default: {
+                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/unknown.png");
+                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], "Pin 1: n.v.t.");
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[1], "Pin 2: n.v.t.");
+                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], "Pin 3: n.v.t.");
+                            break;
+                        }
+                    }
+                    return FALSE;
+                }), NULL);
+                determenRequested = false;
+            }
+            if (measurementRequested) {
+                measure();
+                measurementRequested = false;
+            }
+            sleep_ms(100);
+        }
+    });
+
     g_object_unref(builder);
     gtk_widget_show(window);
     gtk_widget_show((GtkWidget*) calibrationDialog.self);
     gtk_main();
 }
 
-unsigned int ID;
+unsigned int segment;
+double segmentProgress;
 
-void setProgress(double PROGRESS) {
-    gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 0.33 * ID + (((double) PROGRESS) / 3));
+void updateProgress() {
+    auto lambda = +[]() {
+        gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 0.33 * segment + segmentProgress / 3.0);
+        return FALSE;
+    };
+    g_idle_add(G_SOURCE_FUNC(lambda), NULL);
 }
 
 void calibrate() {
     calibrationThread = std::thread([]() {
-        gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialoge_close_button, FALSE);
+        gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialog_close_button, FALSE);
         gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.start_button, FALSE);
         // determine probe offset
         for (unsigned char i = 0; i < 3; ++i) {
@@ -609,22 +727,24 @@ void calibrate() {
         Probe::probe[1].setShunt(3.88);
         Probe::probe[2].setShunt(3.88);
         // set GUI to indicate probe 1 is getting calibrated
-        ID = 0;
-        gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 1/3");
-        Probe::probe[0].calibrate(setProgress);
-        gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 2/3");
-        ++ID;
-        Probe::probe[1].calibrate(setProgress);
-        gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 3/3");
-        ++ID;
-        Probe::probe[2].calibrate(setProgress);
-        gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Klaar!");
-        gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialoge_close_button, TRUE);
+        g_idle_add(G_SOURCE_FUNC(+[](){gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 1/3"); return FALSE;}), NULL);
+        segment = 0;
+        Probe::probe[0].calibrate(updateProgress, &segmentProgress);
+        g_idle_add(G_SOURCE_FUNC(+[](){gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 2/3"); return FALSE;}), NULL);
+        ++segment;
+        Probe::probe[1].calibrate(updateProgress, &segmentProgress);
+        g_idle_add(G_SOURCE_FUNC(+[](){gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 3/3"); return FALSE;}), NULL);
+        ++segment;
+        Probe::probe[2].calibrate(updateProgress, &segmentProgress);
+        g_idle_add(G_SOURCE_FUNC(+[](){gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Klaar!"); gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialog_close_button, TRUE); return FALSE;}), NULL);
+        calibrated = true;
     });
 }
 
 void destroy() {
+    programAlive = false;
     calibrationThread.join();
+    measurementThread.join();
     gtk_main_quit();
     delete[] ProbeCombination::possibleCombinations;
     Probe::destroy();

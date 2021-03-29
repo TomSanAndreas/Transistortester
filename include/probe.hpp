@@ -27,7 +27,7 @@ class Probe {
 
         static Probe* probe;
 
-        void calibrate(void (*progressIndicator)(double PROGRESS));
+        void calibrate(void (*progressIndicator)(), double* progress);
 
         // sets the DAC to Powerdown mode, causing it to have a big resistance (~500K);
         void turnOff();

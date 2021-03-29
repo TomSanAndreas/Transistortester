@@ -216,7 +216,9 @@ int interpretNumber(const char * str, unsigned int* errorIndex) {
     return negative? -result : result;
 }
 
-void calibrateProgress(double progress) {
+double progress = 0.0;
+
+void calibrateProgress() {
     if (progress < .99) {
         char buffer[25];
         sprintf(buffer, "Kalibreren... %.2f%", progress * 100);
@@ -447,7 +449,7 @@ char* interpretCommand(const char * cmd) {
                 strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
                 return returnText;
             }
-            Probe::probe[probeNr - 1].calibrate(calibrateProgress);
+            Probe::probe[probeNr - 1].calibrate(calibrateProgress, &progress);
             char* returnText = new char[60];
             sprintf(returnText, "Probe %d is opnieuw gekalibreerd.", probeNr);
             return returnText;
@@ -462,7 +464,7 @@ char* interpretCommand(const char * cmd) {
                 strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
                 return returnText;
             }
-            Probe::probe[probeNr - 1].calibrate(calibrateProgress);
+            Probe::probe[probeNr - 1].calibrate(calibrateProgress, &progress);
             char* returnText = new char[60];
             sprintf(returnText, "Probe %d is opnieuw gekalibreerd.", probeNr);
             return returnText;
