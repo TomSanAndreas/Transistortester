@@ -32,4 +32,6 @@ class DAC : public I2C_Device {
         ~DAC();
         // zet een rawValue als uitgangsspanning, dit is een waarde tussen 0-4095 (12-bit) die schaalt tussen 0 tot VCC
         void setVoltage(UVoltage rawValue);
+        // zet de DAC op power-down mode, waardoor deze de grond verbind met een weerstand van ongeveer 500K
+        void turnOff();
 };

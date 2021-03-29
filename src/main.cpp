@@ -46,9 +46,7 @@ int main(int argc, char** argv) {
     } else if (argc > 2) {
         printf("Gelieve maximaal 1 extra argument mee te geven. Zie argument <-h, --help> voor meer uitleg.\n");
     } else {
-        Probe::init();
         UserInterface::init(&argc, &argv);
-        Probe::destroy();
     }
     return 0;
 }

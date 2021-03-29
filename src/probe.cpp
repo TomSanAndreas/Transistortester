@@ -13,9 +13,7 @@ void Probe::destroy() {
 
 Probe::Probe(DAC_Address dac, INA_Address ina) 
 : dac(dac)
-, ina(ina) {
-    calibrate();
-}
+, ina(ina) {}
 
 void Probe::calibrate() {
     // keep track of the original voltage
@@ -23,7 +21,8 @@ void Probe::calibrate() {
     // fill up LUT as voltage reference during measurements
     for (unsigned int i = 0; i < 4096; ++i) {
         dac.setVoltage(i);
-        exactVoltageLUT[i] = ina.readVoltage() + vOffset;
+        sleep_ms(1);
+        exactVoltageLUT[i] = readAverageVoltage(3);
     }
     // determine voltBitRatio, max voltage is already set in for-loop
     // get max voltage
@@ -32,6 +31,10 @@ void Probe::calibrate() {
     voltBitRatio = ((double) maxVoltage) / 4095;
     // set the dac back
     dac.setVoltage(original);
+}
+
+void Probe::turnOff() {
+    dac.turnOff();
 }
 
 void Probe::setOffset(Voltage offset) {
@@ -62,7 +65,6 @@ Voltage Probe::readAverageShuntVoltage(unsigned int nSamples) {
     long long sum = 0;
     for (unsigned int i = 0; i < nSamples; ++i) {
         sum += ina.readShuntVoltage();
-        sleep_ms(1);
     }
     return sum / nSamples;
 }
@@ -75,7 +77,6 @@ UVoltage Probe::readAverageVoltage(unsigned int nSamples) {
     unsigned long long sum = 0;
     for (unsigned int i = 0; i < nSamples; ++i) {
         sum += ina.readVoltage();
-        sleep_ms(1);
     }
     return sum / nSamples + vOffset;
 }
@@ -88,7 +89,6 @@ Current Probe::readAverageCurrent(unsigned int nSamples) {
     long long sum = 0;
     for (unsigned int i = 0; i < nSamples; ++i) {
         sum += ina.readCurrent();
-        sleep_ms(1);
     }
     return sum / nSamples;
 }
@@ -116,7 +116,6 @@ MeasureResult Probe::doFullMeasure(unsigned int nSamples) {
         }
         sumA += measuredA;
         sumV += measuredV;
-        sleep_ms(1);
     }
     result.avgA = sumA / nSamples;
     result.avgV = sumV / nSamples;

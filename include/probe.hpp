@@ -28,6 +28,9 @@ class Probe {
 
         void calibrate();
 
+        // sets the DAC to Powerdown mode, causing it to have a big resistance (~500K);
+        void turnOff();
+
         // set a constant offset on the measured voltage in mV
         // IMPORTANT: use calibrate() to see the full effect of the changes!
         void setOffset(Voltage);
