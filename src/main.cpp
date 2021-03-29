@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "calibration_setup.hpp"
 #include "user_interface.hpp"
 
 #ifdef COMPILE_WITH_CALIBRATION_WINDOW
@@ -28,18 +27,17 @@ int main(int argc, char** argv) {
             printf("Volgende argumenten zijn beschikbaar:\n"
                    "\t-h, --help          Print deze help.\n");
             #ifdef COMPILE_WITH_CALIBRATION_WINDOW
-            printf("\t-k, --kalibratie    Start het kalibreerproces.\n");
+            printf("\t-s, --shell         Start de interactieve terminal-interface.\n");
             #else
             printf("\t-s, --shell         Deze functionaliteit is niet beschikbaar, zie -s voor meer informatie.\n");
             #endif
-            printf("\t-s, --shell         Start de interactieve terminal-interface.\n"
-                   "\t<geen argumenten>   Start de grafische interface voor gewoon gebruik.\n");
-        } else if (strcmp(argv[1], "-k") == 0 || strcmp(argv[1], "--kalibratie") == 0) {
-            CalibrationSetup::initClean();
-            while (!CalibrationSetup::doneCalibrating) {
-                CalibrationSetup::update();
-            }
-            CalibrationSetup::cleanUp();
+            printf("\t<geen argumenten>   Start de grafische interface voor gewoon gebruik.\n");
+        // } else if (strcmp(argv[1], "-k") == 0 || strcmp(argv[1], "--kalibratie") == 0) {
+        //     CalibrationSetup::initClean();
+        //     while (!CalibrationSetup::doneCalibrating) {
+        //         CalibrationSetup::update();
+        //     }
+        //     CalibrationSetup::cleanUp();
         } else {
             printf("Argument %s is niet herkend. Zie <-h, --help> voor meer informatie.\n", argv[1]);
         }

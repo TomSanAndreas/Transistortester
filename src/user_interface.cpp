@@ -395,11 +395,10 @@ void determineType() {
         MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
         MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
         // check if current is big enough (max ~20K resistor), with a 1% margin of error
-        printf("CURRENT_1: %d, CURRENT_2: %d, ALMOST_EQUAL: %d", results1.avgA, results2.avgA, ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01));
-        if (results1.avgA < -25 && results2.avgA > 25 && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
+        if ((results1.avgA < -25 && results2.avgA > 25) || (results1.avgA > 25 && results2.avgA < -25) && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
             currentComponent.type = ComponentType::RESISTOR;
             currentComponent.data.resistorData.connectedPins = ProbeCombination::possibleCombinations[i];
-            currentComponent.data.resistorData.resistance = (results1.avgV / results2.avgV) / (results2.avgA);
+            currentComponent.data.resistorData.resistance = (results1.avgV - results2.avgV) / (results2.avgA);
             return;
         }
     }
@@ -558,6 +557,12 @@ void UserInterface::init(int* argc, char *** argv) {
     gtk_main();
 }
 
+unsigned int ID;
+
+void setProgress(double PROGRESS) {
+    gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 0.33 * ID + (((double) PROGRESS) / 3));
+}
+
 void calibrate() {
     calibrationThread = std::thread([]() {
         gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialoge_close_button, FALSE);
@@ -577,18 +582,16 @@ void calibrate() {
         Probe::probe[1].setShunt(3.88);
         Probe::probe[2].setShunt(3.88);
         // set GUI to indicate probe 1 is getting calibrated
+        ID = 0;
         gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 1/3");
-        gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 0.0);
-        // calibrate first probe
-        Probe::probe[0].calibrate();
+        Probe::probe[0].calibrate(setProgress);
         gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 2/3");
-        gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 0.33);
-        Probe::probe[1].calibrate();
+        ++ID;
+        Probe::probe[1].calibrate(setProgress);
         gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 3/3");
-        gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 0.66);
-        Probe::probe[2].calibrate();
+        ++ID;
+        Probe::probe[2].calibrate(setProgress);
         gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Klaar!");
-        gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 1.0);
         gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialoge_close_button, TRUE);
     });
 }

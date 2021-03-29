@@ -1,5 +1,7 @@
 #include "probe.hpp"
-
+#ifdef USING_RPI
+#include <X11/Xlib.h>
+#endif
 #include <stdio.h>
 Probe* Probe::probe = nullptr;
 
@@ -15,15 +17,15 @@ Probe::Probe(DAC_Address dac, INA_Address ina)
 : dac(dac)
 , ina(ina) {}
 
-void Probe::calibrate() {
+void Probe::calibrate(void (*progressIndicator)(double PROGRESS)) {
     // keep track of the original voltage
     UVoltage original = dac.currentVoltage;
     // fill up LUT as voltage reference during measurements
     for (unsigned int i = 0; i < 4096; ++i) {
         dac.setVoltage(i);
-        // takes too long with a delay
-        // sleep_ms(1);
         exactVoltageLUT[i] = readAverageVoltage(3);
+        // update progress
+        progressIndicator(i / 4096.0);
     }
     // determine voltBitRatio, max voltage is already set in for-loop
     // get max voltage

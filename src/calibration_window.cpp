@@ -216,6 +216,18 @@ int interpretNumber(const char * str, unsigned int* errorIndex) {
     return negative? -result : result;
 }
 
+void calibrateProgress(double progress) {
+    if (progress < .99) {
+        char buffer[25];
+        sprintf(buffer, "Kalibreren... %.2f", progress * 100);
+        move(cursorLocation.y, 5);
+        printw(buffer);
+    } else {
+        move(cursorLocation.y, 5);
+        printw("                         ");
+    }
+}
+
 char* interpretCommand(const char * cmd) {
     if (strcmp(cmd, "help") == 0 || strcmp(cmd, "h") == 0) {                    
         char* returnText = new char[450]; // tijdelijke buffer die de volledige output bevat van meerdere lijnen
@@ -433,7 +445,7 @@ char* interpretCommand(const char * cmd) {
                 strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
                 return returnText;
             }
-            Probe::probe[probeNr - 1].calibrate();
+            Probe::probe[probeNr - 1].calibrate(calibrateProgress);
             char* returnText = new char[60];
             sprintf(returnText, "Probe %d is opnieuw gekalibreerd.", probeNr);
             return returnText;
@@ -448,7 +460,7 @@ char* interpretCommand(const char * cmd) {
                 strcpy(returnText, "Gelieve eerst een probe te selecteren via p, probe <1-3>.");
                 return returnText;
             }
-            Probe::probe[probeNr - 1].calibrate();
+            Probe::probe[probeNr - 1].calibrate(calibrateProgress);
             char* returnText = new char[60];
             sprintf(returnText, "Probe %d is opnieuw gekalibreerd.", probeNr);
             return returnText;
