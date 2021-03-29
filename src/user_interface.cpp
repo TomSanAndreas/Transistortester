@@ -271,7 +271,7 @@ extern "C" {
     }
     G_MODULE_EXPORT void determine_type(GtkWidget* widget, gpointer user_data) {
         determineType();
-        gtk_label_set_text(mainWindow.topPanel.component.componentName, ComponentProperties::propertyNames[currentComponent.type]);
+        gtk_label_set_text(mainWindow.topPanel.component.componentName, ComponentLayout::possibleComponentNames[currentComponent.type]);
     }
     #elif USING_RPI
     void destroy_signal(GtkWidget* w, gpointer user_data) {
@@ -317,6 +317,7 @@ extern "C" {
     }
     void determine_type(GtkWidget* widget, gpointer user_data) {
         determineType();
+        gtk_label_set_text(mainWindow.topPanel.component.componentName, ComponentLayout::possibleComponentNames[currentComponent.type]);
     }
     #endif
 }
@@ -412,34 +413,35 @@ void determineType() {
     // check if DUT is a capacitor
     //TODO
     // check if DUT is a diode
-    for (unsigned char i = 0; i < 6; ++i) {
-        // turn off the third probe
-        ProbeCombination::possibleCombinations[i].third->turnOff();
-        // set the second probe as GND
-        ProbeCombination::possibleCombinations[i].second->setVoltage(0);
-        // set the first probe as VCC (750 mV)
-        ProbeCombination::possibleCombinations[i].first->setVoltage(750);
-        // wait for a short time
-        sleep_ms(10);
-        // check if a valid voltage drop occured, with a 10% margin of error
-        MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
-        MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
-        if (ALMOSTEQUAL(results1.avgV - results2.avgV, 700, 0.1)) {
-            currentComponent.type = ComponentType::DIODE;
-            currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
-            currentComponent.data.diodeData.voltageDrop = results1.avgV - results2.avgV;
-            return;
-        }
-    }
-    // check if DUT is a BJT transistor (NPN or PNP)
+    // FIXME
+    // for (unsigned char i = 0; i < 6; ++i) {
+    //     // turn off the third probe
+    //     ProbeCombination::possibleCombinations[i].third->turnOff();
+    //     // set the second probe as GND
+    //     ProbeCombination::possibleCombinations[i].second->setVoltage(0);
+    //     // set the first probe as VCC (750 mV)
+    //     ProbeCombination::possibleCombinations[i].first->setVoltage(750);
+    //     // wait for a short time
+    //     sleep_ms(10);
+    //     // check if a valid voltage drop occured, with a 10% margin of error
+    //     MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
+    //     MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
+    //     if (ALMOSTEQUAL(results1.avgV - results2.avgV, 700, 0.1)) {
+    //         currentComponent.type = ComponentType::DIODE;
+    //         currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
+    //         currentComponent.data.diodeData.voltageDrop = results1.avgV - results2.avgV;
+    //         return;
+    //     }
+    // }
+    // check if DUT is a BJT NPN transistor
     for (unsigned char i = 0; i < 3; ++i) {
         // first pin is considered to be the collector, second as base and third as emitter
-        // set emitter as GND
+        // set emitter as GND, so that VBE = 0.7V
         ProbeCombination::possibleCombinations[i].third->setVoltage(0);
-        // set base as 700mV
+        // set base as 700mV, so that VBE = 0.7V
         ProbeCombination::possibleCombinations[i].second->setVoltage(700);
-        // set collector as 1000mV
-        ProbeCombination::possibleCombinations[i].first->setVoltage(1000);
+        // set collector as 500mV, so in case this isnt the collector, more than 700mV cant be across the actual B-E junction
+        ProbeCombination::possibleCombinations[i].first->setVoltage(500);
         // wait for a short time
         sleep_ms(10);
         // check if it is a BJT using the measurements
@@ -447,10 +449,9 @@ void determineType() {
         MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
         MeasureResult results3 = ProbeCombination::possibleCombinations[i].third->doFullMeasure(10);
         // check if collector and emitter current is similar
-        if (ALMOSTEQUAL(results1.avgA, results3.avgA, .01)) {
-            // check currents to see if it is a PNP or NPN
-            // NPN
-            if (results2.avgA > 0 && results1.avgA < 0 && results3.avgA > 0) {
+        if (ALMOSTEQUAL(ABS(results1.avgA) + ABS(results2.avgA), results3.avgA, .05)) {
+            // check current direction
+            if (results2.avgA < 0 && results1.avgA < 0 && results3.avgA > 0) {
                 currentComponent.type = ComponentType::BJT_NPN;
                 currentComponent.data.bjtNpnData.baseEmitterPins = {
                     ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].first
@@ -463,9 +464,28 @@ void determineType() {
                 };
                 return;
             }
-            // PNP
-            else if (results2.avgA < 0 && results1.avgA > 0 && results3.avgA < 0) {
-                currentComponent.type = ComponentType::BJT_PNP;
+        }
+    }
+    // check if DUT is a BJT PNP transistor
+    for (unsigned char i = 0; i < 3; ++i) {
+        // first pin is considered to be the collector, second as base and third as emitter
+        // set emitter as 1000mV, so that VBE = -0.7V
+        ProbeCombination::possibleCombinations[i].third->setVoltage(1000);
+        // set base as 300mV, so that VBE = -0.7V
+        ProbeCombination::possibleCombinations[i].second->setVoltage(300);
+        // set collector as 500mV, so that VCE >= 0.2V
+        ProbeCombination::possibleCombinations[i].first->setVoltage(500);
+        // wait for a short time
+        sleep_ms(10);
+        // check if it is a BJT using the measurements
+        MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
+        MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
+        MeasureResult results3 = ProbeCombination::possibleCombinations[i].third->doFullMeasure(10);
+        // check if collector and emitter current is similar
+        if (ALMOSTEQUAL(ABS(results1.avgA) + ABS(results2.avgA), results3.avgA, .05)) {
+            // check current direction
+            if (results2.avgA > 0 && results1.avgA > 0 && results3.avgA < 0) {
+                currentComponent.type = ComponentType::BJT_NPN;
                 currentComponent.data.bjtNpnData.baseEmitterPins = {
                     ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].first
                 };
