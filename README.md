@@ -13,9 +13,8 @@ Eerst wordt de repo gedownload.
 ```
 Via het bestand ```transistortester/include/base.hpp``` is het mogelijk bepaalde functionaliteit al dan niet mee te compileren. Dit heeft effect op de grootte van het resultaat, alsook de duur van het compileren en de benodigdheden. De verschillende mogelijkheden zijn:
  - Shell (heeft ```ncurses``` als benodigdheid; afhankelijk van het gebruikte besturingssysteem is deze anders te installeren).
- *BELANGRIJK*: De meegeleverde ```Makefile``` verondersteld dat deze wordt gebruikt. Indien ```ncurses``` niet is geïnstalleerd, en er is geen nood aan de shell, dan mag de parameter ```GEBRUIKTE_RPI_DEPENDENCIES``` in de Makefile ```-lncurses``` niet meer bevatten om geen linkerfouten te krijgen.
-Functionaliteit kan veranderd worden door de betreffende lijn weg te laten (of in commentaar te veranderen).
-Eerst dient ```GTK 3``` (en eventueel ```ncurses```) geinstalleerd te worden. Dit kan met volgende commando's:
+ *BELANGRIJK*: De meegeleverde ```Makefile``` verondersteld dat deze wordt gebruikt. Indien ```ncurses``` niet is geïnstalleerd, en er is geen nood aan de shell, dan mag de parameter ```GEBRUIKTE_RPI_DEPENDENCIES``` in de Makefile ```-lncurses``` weg te halen om geen linkerfouten te krijgen.
+Eerst dient ```GTK 3``` (en eventueel ```ncurses```) geïnstalleerd te worden. Dit kan met volgende commando's:
 ```
 ~$ sudo apt install libgtk-3-dev
 ~$ sudo apt install libncurses5-dev libncursesw5-dev (optioneel)
@@ -25,7 +24,7 @@ Eenmaal ```base.hpp``` de gewenste configuratie bevat, volstaat onderstaand comm
 ~$ cd transistortester
 transistortester$ make rpi
 ```
-Normaalgezien zou dan, na enkele seconden, het resultaat te vinden moeten zijn in een nieuwe map ```bin```.
+Normaalgezien zou dan, na enkele seconden en zonder fouten, het resultaat te vinden moeten zijn in een nieuwe map ```bin```.
 ### Windows (om functionaliteit van de interface(s) te testen)
 Hier kan de code op verschillende manieren worden gedownload. De meest eenvoudige is waarschijnlijk de code als ZIP te downloaden, en deze ergens uit te pakken. Voor eenvoud worden de commando's getoond alsof de ZIP in de C:-schijf is uitgepakt, al maakt de werkelijke locatie weinig uit.
 Juist zoals bij de Raspberry Pi, is het mogelijk de code die gecompileerd wordt aan te passen. Dit gebeurt ook in ```base.hpp```. Nadat de parameters ingesteld staan, (en de Makefile eventueel is aangepast door ```-lncurses``` bij ```GEBRUIKTE_WIN_DEPENDENCIES``` weg te pakken indien de shell niet gewenst is) kan de code met volgende commando's worden gecompileerd:
@@ -39,7 +38,11 @@ Juist zoals bij de Raspberry Pi, kan de code gedownload worden via
 ~$ git clone https://github.ugent.be/towindel/transistortester.git
 ```
 De configuratie van de te compileren functionaliteit kan gewijzigd worden in ```base.hpp```. Afhankelijk van de gebruikte distro kan het installeren van de nodige libraries (```GTK 3``` en ```ncurses```, indien de shell gewenst is) verschillen, dus dit wordt niet verder uitgelegd.
-
+Het compileren van de code gebeurt als volgt:
+```
+~$ cd transistortester
+transistortester$ make linux
+```
 ## To-Do
 Momenteel is er ook een (onvolledige) grafische interface. Het GTK-venster laat al toe een aangesloten component te herkennen (weerstand, diode, BJT (NPN & PNP)) en de pinout van deze component weer te geven. Verder nameten van deze component moet nog worden toegevoegd.
 ## Troubleshooting
