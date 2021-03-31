@@ -613,9 +613,9 @@ namespace CalibrationWindow {
                 // zodanig dat het aantal keer verplaatsen van geheugen
                 // beperkter is
 
-                if (TerminalBuffer::nLines > TerminalBuffer::nLinesMAX + 15) {
+                if (TerminalBuffer::nLines > TerminalBuffer::nLinesMAX + 18) {
                     // nieuwe buffer maken die gedeeltelijk wordt opgevuld
-                    TerminalBuffer* newBuffer = new TerminalBuffer[TerminalBuffer::nLinesMAX + 20];
+                    TerminalBuffer* newBuffer = new TerminalBuffer[TerminalBuffer::nLinesMAX + 30];
                     // plaats van het "oudste" commando dat nog wordt weergegeven vinden
                     const TerminalBuffer* start = &TerminalBuffer::buffer[20];
                     // vanaf hier kopieren uit de oude buffer

@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
             CalibrationWindow::destroy();
             Probe::destroy();
             #else
-            printf("Dit programma werd niet met het kalibratiescherm gecompileerd. Gelieve de source-code opnieuw te compileren met de COMPILE_WITH_CALIBRATION_WINDOW-vlag actief in parameters.hpp.\n");
+            printf("Dit programma werd niet met het kalibratiescherm gecompileerd. Gelieve de source-code opnieuw te compileren met de COMPILE_WITH_CALIBRATION_WINDOW-vlag actief in base.hpp.\n");
             #endif
         } else if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
             printf("Volgende argumenten zijn beschikbaar:\n"

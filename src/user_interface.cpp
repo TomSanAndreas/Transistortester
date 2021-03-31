@@ -1,7 +1,7 @@
 #include "user_interface.hpp"
 #include <thread>
 
-#ifdef USING_RPI
+#ifndef WINDOWS
 #include <X11/Xlib.h>
 #endif
 
@@ -275,7 +275,7 @@ extern "C" {
     G_MODULE_EXPORT void determine_type(GtkWidget* widget, gpointer user_data) {
         determenRequested = true;
     }
-    #elif USING_RPI
+    #else
     void destroy_signal(GtkWidget* w, gpointer user_data) {
         destroy();
     }
@@ -525,7 +525,7 @@ void UserInterface::init(int* argc, char *** argv) {
     // init GUI
     GtkBuilder* builder;
     GtkWidget* window,* graph;
-    #ifdef USING_RPI
+    #ifndef WINDOWS
     XInitThreads();
     #endif
     gtk_init(argc, argv);
@@ -736,7 +736,7 @@ void calibrate() {
         g_idle_add(G_SOURCE_FUNC(+[](){gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 3/3"); return FALSE;}), NULL);
         ++segment;
         Probe::probe[2].calibrate(updateProgress, &segmentProgress);
-        g_idle_add(G_SOURCE_FUNC(+[](){gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Klaar!"); gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialog_close_button, TRUE); return FALSE;}), NULL);
+        g_idle_add(G_SOURCE_FUNC(+[](){gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Klaar!"); gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 1.0); gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialog_close_button, TRUE); return FALSE;}), NULL);
         calibrated = true;
     });
 }

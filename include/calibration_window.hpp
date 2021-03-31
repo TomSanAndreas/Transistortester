@@ -3,12 +3,10 @@
 #include "parameters.hpp"
 #ifdef COMPILE_WITH_CALIBRATION_WINDOW
 
-#ifdef USING_RPI
-#include <ncurses.h>
-#else
 #ifdef WINDOWS
 #include <ncurses/ncurses.h>
-#endif
+#else
+#include <ncurses.h>
 #endif
 
 #include "probe.hpp"
