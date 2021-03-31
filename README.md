@@ -12,8 +12,8 @@ Eerst wordt de repo gedownload.
 ~$ git clone https://github.ugent.be/towindel/transistortester.git
 ```
 Via het bestand ```transistortester/include/base.hpp``` is het mogelijk bepaalde functionaliteit al dan niet mee te compileren. Dit heeft effect op de grootte van het resultaat, alsook de duur van het compileren en de benodigdheden. De verschillende mogelijkheden zijn:
- - Shell (heeft ```ncurses``` als benodigdheid; afhankelijk van het gebruikte besturingssysteem is deze anders te installeren)
- *BELANGRIJK*: De meegeleverde ```Makefile``` verondersteld dat deze wordt gebruikt. Indien ```ncurses``` niet is geïnstalleerd, en er is geen nood aan het shell, dan mag de parameter ```GEBRUIKTE_RPI_DEPENDENCIES``` in de Makefile ```-lncurses``` niet meer bevatten om geen linkerfouten te krijgen.
+ - Shell (heeft ```ncurses``` als benodigdheid; afhankelijk van het gebruikte besturingssysteem is deze anders te installeren).
+ *BELANGRIJK*: De meegeleverde ```Makefile``` verondersteld dat deze wordt gebruikt. Indien ```ncurses``` niet is geïnstalleerd, en er is geen nood aan de shell, dan mag de parameter ```GEBRUIKTE_RPI_DEPENDENCIES``` in de Makefile ```-lncurses``` niet meer bevatten om geen linkerfouten te krijgen.
 Functionaliteit kan veranderd worden door de betreffende lijn weg te laten (of in commentaar te veranderen).
 Eerst dient ```GTK 3``` (en eventueel ```ncurses```) geinstalleerd te worden. Dit kan met volgende commando's:
 ```
