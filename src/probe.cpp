@@ -55,7 +55,7 @@ void Probe::setVoltage(UVoltage newVoltage) {
 
 void Probe::increaseVoltage() {
     ++currentVoltageBitsSet;
-    currentVoltageSet = exactVoltageLUT[currentVoltageSet];
+    currentVoltageSet = exactVoltageLUT[currentVoltageBitsSet];
     dac.setVoltage(currentVoltageBitsSet);
 }
 
@@ -104,7 +104,7 @@ Current Probe::readCurrent() {
 }
 
 Current Probe::readAverageCurrent(unsigned int nSamples) {
-    long long sum = 0;
+    double sum = 0;
     for (unsigned int i = 0; i < nSamples; ++i) {
         sum += ina.readCurrent();
     }
@@ -114,7 +114,8 @@ Current Probe::readAverageCurrent(unsigned int nSamples) {
 MeasureResult Probe::doFullMeasure(unsigned int nSamples) {
     MeasureResult result;
     result.usedVoltage = exactVoltageLUT[currentVoltageBitsSet];
-    long long sumV = 0, sumA = 0;
+    long long sumV = 0;
+    double sumA = 0;
     Current measuredA;
     UVoltage measuredV;
     for (unsigned int i = 0; i < nSamples; ++i) {

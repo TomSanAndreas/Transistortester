@@ -165,17 +165,16 @@ struct BjtNpnData {
         baseEmitterPins.third->setVoltage(500);
         // basis is 710 mV
         baseEmitterPins.first->setVoltage(710);
-        Current baseCurrent = baseEmitterPins.first->readCurrent();
+        Current collectorCurrent = baseEmitterPins.third->readCurrent();
         // NPN heeft stroom in de basis, dus wordt deze als negatief gemeten
         // VBE verlagen door B te laten dalen, dit tot baseCurrent klein genoeg is (in absolute waarde)
-        while (baseCurrent < -5 && baseEmitterPins.first->currentVoltageSet > 500) {
+        while (collectorCurrent < -1 && baseEmitterPins.first->currentVoltageSet > 200) {
             baseEmitterPins.first->decreaseVoltage();
-            baseCurrent = baseEmitterPins.first->readAverageCurrent(10);
+            collectorCurrent = collectorEmitterPins.third->readAverageCurrent(25);
         }
-        // nu zou basisspanning klein genoeg moeten zijn om de transistor juist niet meer te doen geleiden, dus één increment hoger is de minimumstroom die meetbaar is bij een geleidende, niet-saturerende transistor
-        baseEmitterPins.first->increaseVoltage();
         // beta kan nu bepaald worden
-        beta = ((double) baseEmitterPins.third->readAverageCurrent(10)) / baseEmitterPins.first->readAverageCurrent(10);
+	// FIXME
+        // beta = ((double) baseEmitterPins.third->readAverageCurrent(10)) / baseEmitterPins.first->readAverageCurrent(10);
         // vanaf hier kan de verhouding IB <-> IC gemeten worden, totdat de basisstroom te hoog is, voor een grafiek te vormen
 
         MeasureResult result1, result2;
@@ -193,7 +192,8 @@ struct BjtNpnData {
         Graph::maxY = graphs[0].data[0].y;
         unsigned int i = 1;
         baseEmitterPins.first->increaseVoltage();
-        while (baseCurrent > -250 && i < 50) {
+	Current baseCurrent = baseEmitterPins.first->readAverageCurrent(10);
+        while (collectorCurrent > -8000 && i < 50) {
             result1 = baseEmitterPins.first->doFullMeasure(10);
             result2 = baseEmitterPins.third->doFullMeasure(10);
             graphs[0].data[i].x = - result1.avgA;
@@ -211,14 +211,22 @@ struct BjtNpnData {
             if (graphs[0].data[i].y < Graph::minY) {
                 Graph::minY = graphs[0].data[i].y;
             }
-            if (graphs[0].data[i].x > Graph::maxY) {
+            if (graphs[0].data[i].y > Graph::maxY) {
                 Graph::maxY = graphs[0].data[i].y;
             }
-            baseEmitterPins.first->increaseVoltage();
+	    while (baseEmitterPins.first->readAverageCurrent(10) > baseCurrent - 2)
+		baseEmitterPins.first->increaseVoltage();
             ++i;
             baseCurrent = result1.avgA;
+	    collectorCurrent = result2.avgA;
         }
-        Graph::graphType = GraphContext::IB_IC;
+	if (i != 50) {
+		for (unsigned int j = 0; j < 3; ++j) {
+			graphs[j].data[i].x = 0;
+			graphs[j].data[i].y = 0;
+		}
+	}
+	Graph::graphType = GraphContext::IB_IC;
     }
 };
 
@@ -343,11 +351,11 @@ struct GraphWindow {
             // labels zetten
             char buffer[10];
             for (unsigned char i = 0; i < 21; ++i) {
-                sprintf(buffer, "%4d%*s", (i + 1) * (Graph::maxX - Graph::minX) / 21, 2, " ");
+                sprintf(buffer, "%4d%*s", (i + 1) * (Graph::maxX - Graph::minX) / 21 + Graph::minX, 2, " ");
                 gtk_label_set_text(xLabels[i], buffer);
             }
             for (unsigned char i = 0; i < 9; ++i) {
-                sprintf(buffer, "%8d", (i + 1) * (Graph::maxY - Graph::minY) / 9);
+                sprintf(buffer, "%8d", (i + 1) * (Graph::maxY - Graph::minY) / 9 + Graph::minY);
                 gtk_label_set_text(yLabelsLeft[i], buffer);
             }
             return FALSE;
@@ -471,7 +479,7 @@ struct MainWindow {
     BottomPanel bottomPanel;
 } mainWindow;
 
-GdkRGBA colors[3] { {.75, 1, .75, 1}, {1, .75, .75, 1}, {1, .75, .75, 1} };
+GdkRGBA colors[3] { {.35, .5, .4, 1}, {.6, .2, .45, 1}, {.6, .5, .45, 1} };
 CalibrationDialog calibrationDialog;
 
 std::thread calibrationThread, measurementThread;
@@ -554,7 +562,9 @@ extern "C" {
         // plotten grafieken
         for (unsigned char i = 0; i < 3; ++i) {
             for (unsigned int j = 0; j < 50; ++j) {
-                cairo_line_to(cr, graphs[i].data[j].x * scaleX, height - graphs[i].data[j].y * scaleY);
+		if (graphs[i].data[j].x == 0 && graphs[i].data[j].y == 0)
+			break;
+                cairo_line_to(cr, (graphs[i].data[j].x - Graph::minX) * scaleX, height - (graphs[i].data[j].y - Graph::minY) * scaleY);
             }
             gdk_cairo_set_source_rgba(cr, &colors[i]);
             cairo_stroke(cr);
