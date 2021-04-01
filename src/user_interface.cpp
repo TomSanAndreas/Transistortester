@@ -324,7 +324,7 @@ struct GraphWindow {
             // zet alle y-labels zichtbaar
             for (unsigned int i = 0; i < 9; ++i) {
                 gtk_widget_set_opacity((GtkWidget*) yLabelsLeft[i], 1.0);
-                gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 1.0);
+                // gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 1.0);
             }
             // zet de eenheden op het einde van de X- en Y-as zichtbaar
             gtk_widget_set_opacity((GtkWidget*) unit1, 1.0);
@@ -340,6 +340,16 @@ struct GraphWindow {
             gtk_widget_set_opacity(self, 1.0);
             // grafiek opnieuw tekenen
             gtk_widget_queue_draw(self);
+            // labels zetten
+            char buffer[10];
+            for (unsigned char i = 0; i < 21; ++i) {
+                sprintf(buffer, "%4d%*s", (i + 1) * (Graph::maxX - Graph::minX) / 21, 2, " ");
+                gtk_label_set_text(xLabels[i], buffer);
+            }
+            for (unsigned char i = 0; i < 9; ++i) {
+                sprintf(buffer, "%8d", (i + 1) * (Graph::maxY - Graph::minY) / 9);
+                gtk_label_set_text(yLabelsLeft[i], buffer);
+            }
             return FALSE;
         }), NULL);
     }
@@ -676,13 +686,13 @@ void determineType() {
             if (results2.avgA < 0 && results1.avgA < 0 && results3.avgA > 0) {
                 currentComponent.type = ComponentType::BJT_NPN;
                 currentComponent.data.bjtNpnData.baseEmitterPins = {
-                    ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].first
+                    ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].firstPinNumber
                 };
                 currentComponent.data.bjtNpnData.collectorEmitterPins = {
-                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].second
+                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber
                 };
                 currentComponent.data.bjtNpnData.collectorBasePins = {
-                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third
+                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber
                 };
                 return;
             }
@@ -707,14 +717,14 @@ void determineType() {
         if (ALMOSTEQUAL(ABS(results1.avgA) + ABS(results2.avgA), results3.avgA, .05)) {
             // check current direction
             if (results2.avgA > 0 && results1.avgA > 0 && results3.avgA < 0) {
-                currentComponent.type = ComponentType::BJT_NPN;
-                currentComponent.data.bjtNpnData.baseEmitterPins = {
+                currentComponent.type = ComponentType::BJT_PNP;
+                currentComponent.data.bjtPnpData.baseEmitterPins = {
                     ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].firstPinNumber
                 };
-                currentComponent.data.bjtNpnData.collectorEmitterPins = {
+                currentComponent.data.bjtPnpData.collectorEmitterPins = {
                     ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber
                 };
-                currentComponent.data.bjtNpnData.collectorBasePins = {
+                currentComponent.data.bjtPnpData.collectorBasePins = {
                     ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber
                 };
                 return;
