@@ -5,7 +5,7 @@
 #include <X11/Xlib.h>
 #endif
 
-// determine if both values are at least almost equal, only 1% different max
+// determine if both values are at least almost equal, only percentage% different max
 #define ALMOSTEQUAL(value1, value2, percentage) ABS(ABS(value1) - ABS(value2)) < percentage * ABS(value1)
 
 void calibrate();
@@ -19,6 +19,43 @@ struct ProbeCombination {
     unsigned int firstPinNumber, secondPinNumber, thirdPinNumber;
     static ProbeCombination* possibleCombinations;
 };
+
+struct Point {
+    float x, y;
+};
+
+struct Graph {
+    Point data[50];
+    static unsigned int graphType;
+    static int maxX, maxY, minX, minY;
+};
+
+unsigned int Graph::graphType;
+
+struct GraphContext {
+    const char* xUnit,* yUnit;
+    const char* graphTitle;
+    const char* buttonDiscription[3];
+    static const GraphContext data[];
+    static const unsigned int IB_IC, IC_VCE, IC_VBE;
+};
+
+const unsigned int GraphContext::IB_IC = 0;
+const unsigned int GraphContext::IC_VCE = 1;
+const unsigned int GraphContext::IC_VBE = 2;
+
+const GraphContext GraphContext::data[] = {
+    {"uA", "mA", "IC i.f.v. IB",  {"IC i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}},
+    {"mA", "mV", "VCE i.f.v. IC", {"IC i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}},
+    {"mA", "mV", "VBE i.f.v. IC", {"IC i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}}
+};
+
+int Graph::maxX;
+int Graph::maxY;
+int Graph::minX;
+int Graph::minY;
+
+Graph graphs[3];
 
 ProbeCombination* ProbeCombination::possibleCombinations;
 
@@ -37,16 +74,81 @@ enum ComponentType {
 struct ResistorData {
     double resistance;
     ProbeCombination connectedPins;
+    void measure() {
+        // set with 500K resistor to ground
+        connectedPins.third->turnOff();
+        // set as ground
+        connectedPins.second->setVoltage(0);
+        // set as VCC (500mV)
+        connectedPins.first->setVoltage(500);
+        // short delay
+        sleep_ms(10);
+        // measure
+        MeasureResult result1 = connectedPins.first->doFullMeasure(10);
+        MeasureResult result2 = connectedPins.second->doFullMeasure(10);
+        resistance = ((double) (result1.avgV - result2.avgV)) / result2.avgA;
+        connectedPins.first->turnOff();
+        connectedPins.second->turnOff();
+    }
 };
 
 struct CapacitorData {
     double capacitance;
     ProbeCombination connectedPins;
+    void measure() {
+        // charge capacitor
+        connectedPins.third->turnOff();
+        connectedPins.second->setVoltage(0);
+        connectedPins.first->setVoltage(500);
+        Current result = connectedPins.second->readAverageCurrent(10);
+        unsigned int i = 0;
+        while (result > 20 && i < 50) {
+            sleep_ms(10);
+            result = connectedPins.second->readAverageCurrent(10);
+            ++i;
+        }
+        if (i != 50 && i != 0) {
+            // if i is between 0 and 50, it is safe to assume a capacitor was actually connected
+            // reset i
+            i = 0;
+            // discharge capacitor by setting probe to 0V
+            connectedPins.first->setVoltage(0);
+            result = connectedPins.second->readCurrent();
+            while (result > 5) {
+                ++i;
+                result = connectedPins.second->readCurrent();
+            }
+            // if i is too small, it is possible the connected capacitor is very small in capacitance,
+            // so it needs to be measured again, but its discharge has to be done with the bigger built-in
+            // resistors from the DAC
+            if (i < 5) {
+                // TODO
+            }
+            // i is big enough, so the capacitance of the capacitor can be determined
+            else {
+                // TODO
+            }
+        }
+    }
 };
 
 struct DiodeData {
-    double voltageDrop;
+    UVoltage voltageDrop;
     ProbeCombination connectedPins;
+    void measure() {
+        connectedPins.third->turnOff();
+        connectedPins.second->setVoltage(0);
+        connectedPins.first->setVoltage(650);
+        Current result = connectedPins.second->readAverageCurrent(10);
+        voltageDrop = connectedPins.first->currentVoltageSet;
+        while (result < 5 && voltageDrop < 800) {
+            connectedPins.first->increaseVoltage();
+            result = connectedPins.first->readAverageCurrent(10);
+        }
+        voltageDrop = connectedPins.first->readAverageVoltage(10) - connectedPins.second->readAverageVoltage(10);
+        connectedPins.first->turnOff();
+        connectedPins.second->turnOff();
+    }
 };
 
 struct BjtNpnData {
@@ -56,6 +158,68 @@ struct BjtNpnData {
     ProbeCombination baseEmitterPins;
     ProbeCombination collectorEmitterPins;
     ProbeCombination collectorBasePins;
+    void measure() {
+        // emitter is GND
+        baseEmitterPins.second->setVoltage(0);
+        // collector is 500mV
+        baseEmitterPins.third->setVoltage(500);
+        // basis is 710 mV
+        baseEmitterPins.first->setVoltage(710);
+        Current baseCurrent = baseEmitterPins.first->readCurrent();
+        // NPN heeft stroom in de basis, dus wordt deze als negatief gemeten
+        // VBE verlagen door B te laten dalen, dit tot baseCurrent klein genoeg is (in absolute waarde)
+        while (baseCurrent < -5 && baseEmitterPins.first->currentVoltageSet > 500) {
+            baseEmitterPins.first->decreaseVoltage();
+            baseCurrent = baseEmitterPins.first->readAverageCurrent(10);
+        }
+        // nu zou basisspanning klein genoeg moeten zijn om de transistor juist niet meer te doen geleiden, dus één increment hoger is de minimumstroom die meetbaar is bij een geleidende, niet-saturerende transistor
+        baseEmitterPins.first->increaseVoltage();
+        // beta kan nu bepaald worden
+        beta = ((double) baseEmitterPins.third->readAverageCurrent(10)) / baseEmitterPins.first->readAverageCurrent(10);
+        // vanaf hier kan de verhouding IB <-> IC gemeten worden, totdat de basisstroom te hoog is, voor een grafiek te vormen
+
+        MeasureResult result1, result2;
+        result1 = baseEmitterPins.first->doFullMeasure(10);
+        result2 = baseEmitterPins.third->doFullMeasure(10);
+        graphs[0].data[0].x = - result1.avgA;
+        graphs[0].data[0].y = - result2.avgA;
+        graphs[1].data[0].x = - result1.minA;
+        graphs[1].data[0].y = - result2.minA;
+        graphs[2].data[0].x = - result1.maxA;
+        graphs[2].data[0].y = - result2.maxA;
+        Graph::minX = graphs[0].data[0].x;
+        Graph::maxX = graphs[0].data[0].x;
+        Graph::minY = graphs[0].data[0].y;
+        Graph::maxY = graphs[0].data[0].y;
+        unsigned int i = 1;
+        baseEmitterPins.first->increaseVoltage();
+        while (baseCurrent > -250 && i < 50) {
+            result1 = baseEmitterPins.first->doFullMeasure(10);
+            result2 = baseEmitterPins.third->doFullMeasure(10);
+            graphs[0].data[i].x = - result1.avgA;
+            graphs[0].data[i].y = - result2.avgA;
+            graphs[1].data[i].x = - result1.minA;
+            graphs[1].data[i].y = - result2.minA;
+            graphs[2].data[i].x = - result1.maxA;
+            graphs[2].data[i].y = - result2.maxA;
+            if (graphs[0].data[i].x < Graph::minX) {
+                Graph::minX = graphs[0].data[i].x;
+            }
+            if (graphs[0].data[i].x > Graph::maxX) {
+                Graph::maxX = graphs[0].data[i].x;
+            }
+            if (graphs[0].data[i].y < Graph::minY) {
+                Graph::minY = graphs[0].data[i].y;
+            }
+            if (graphs[0].data[i].x > Graph::maxY) {
+                Graph::maxY = graphs[0].data[i].y;
+            }
+            baseEmitterPins.first->increaseVoltage();
+            ++i;
+            baseCurrent = result1.avgA;
+        }
+        Graph::graphType = GraphContext::IB_IC;
+    }
 };
 
 struct BjtPnpData {
@@ -110,35 +274,79 @@ struct Component {
     ComponentData data;
 } currentComponent;
 
-struct Point {
-    float x, y;
-};
-
-struct Graph {
-    Point data[50];
-    static int maxX, maxY, minX, minY;
-};
-
-int Graph::maxX;
-int Graph::maxY;
-int Graph::minX;
-int Graph::minY;
-
 struct CalibrationDialog {
     GtkDialog* self;
     GtkButton* dialog_close_button,* start_button;
     GtkProgressBar* progress_bar;
 };
 
+// everything in this struct is static, so the lambda can have a reference
+// to its members without needing "this" in its capture list
+// there will always be only 1 GraphWindow visible, so it doesn't change
+// the rest of the functionality
 struct GraphWindow {
-    GtkWidget* self;
-    GtkLabel* yLabelsLeft[9],* yLabelsRight[9];
+    static GtkWidget* self;
+    static GtkLabel* yLabelsLeft[9],* yLabelsRight[9];
     static const char* yLabelsLeftNames[],* yLabelsRightNames[];
-    GtkLabel* xLabels[21];
+    static GtkLabel* xLabels[21];
     static const char* xLabelsNames[];
-    GtkLabel* unit0,* unit1,* unit2,* unit3;
-    GtkLabel* graphTitle;
+    static GtkLabel* unit0,* unit1,* unit2,* unit3;
+    static GtkLabel* graphTitle;
+    void makeCompletelyInvisible() {
+        // uitvoeren op de "main" thread; om deze lambda uitvoerbaar te maken met een lege capture-list, zijn alle objecten static
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            // zet alle x-labels onzichtbaar
+            for (unsigned int i = 0; i < 21; ++i) {
+                gtk_widget_set_opacity((GtkWidget*) xLabels[i], 0.0);
+            }
+            // zet alle y-labels onzichtbaar
+            for (unsigned int i = 0; i < 9; ++i) {
+                gtk_widget_set_opacity((GtkWidget*) yLabelsLeft[i], 0.0);
+                gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 0.0);
+            }
+            // zet de eenheden op het einde van de X- en Y-as onzichtbaar
+            gtk_widget_set_opacity((GtkWidget*) unit1, 0.0);
+            gtk_widget_set_opacity((GtkWidget*) unit2, 0.0);
+            // zet de titel onzichtbaar
+            gtk_widget_set_opacity((GtkWidget*) graphTitle, 0.0);
+            // grafiek onzichtbaar maken
+            gtk_widget_set_opacity(self, 0.0);
+            return FALSE;
+        }), NULL);
+    }
+    void updateGraph() {
+        // uitvoeren op de "main" thread; om deze lambda uitvoerbaar te maken met een lege capture-list, zijn alle objecten static
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            // zet alle x-labels zichtbaar
+            for (unsigned int i = 0; i < 21; ++i) {
+                gtk_widget_set_opacity((GtkWidget*) xLabels[i], 1.0);
+            }
+            // zet alle y-labels zichtbaar
+            for (unsigned int i = 0; i < 9; ++i) {
+                gtk_widget_set_opacity((GtkWidget*) yLabelsLeft[i], 1.0);
+                gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 1.0);
+            }
+            // zet de eenheden op het einde van de X- en Y-as zichtbaar
+            gtk_widget_set_opacity((GtkWidget*) unit1, 1.0);
+            gtk_widget_set_opacity((GtkWidget*) unit2, 1.0);
+            // stel de eenheden op het einde van de X- en Y-as in
+            gtk_label_set_text(unit1, GraphContext::data[Graph::graphType].xUnit);
+            gtk_label_set_text(unit2, GraphContext::data[Graph::graphType].yUnit);
+            // zet de titel zichtbaar
+            gtk_widget_set_opacity((GtkWidget*) graphTitle, 1.0);
+            // stel de titel in
+            gtk_label_set_text(graphTitle, GraphContext::data[Graph::graphType].graphTitle);
+            // grafiek zichtbaar maken
+            gtk_widget_set_opacity(self, 1.0);
+            // grafiek opnieuw tekenen
+            gtk_widget_queue_draw(self);
+            return FALSE;
+        }), NULL);
+    }
 };
+
+GtkWidget* GraphWindow::self;
+GtkLabel* GraphWindow::yLabelsLeft[9],* GraphWindow::yLabelsRight[9],* GraphWindow::xLabels[21],* GraphWindow::unit0,* GraphWindow::unit1,* GraphWindow::unit2,* GraphWindow::unit3,* GraphWindow::graphTitle;
 
 const char* GraphWindow::yLabelsLeftNames[] = {
     "y_0_0", "y_0_1", "y_0_2", "y_0_3", "y_0_4", "y_0_5", "y_0_6", "y_0_7", "y_0_8"
@@ -152,10 +360,41 @@ const char* GraphWindow::xLabelsNames[] = {
     "x_0", "x_1", "x_2", "x_3", "x_4", "x_5", "x_6", "x_7", "x_8", "x_9", "x_10", "x_11", "x_12", "x_13", "x_14", "x_15", "x_16", "x_17", "x_18", "x_19", "x_20"
 };
 
+// de buttons zijn static, zodanig dat de lambda "this" niet in de capture-list moet hebben
 struct BottomPanel {
-    GtkButton* toggle1,* toggle2,* toggle3;
+    static GtkButton* toggle1,* toggle2,* toggle3;
     GraphWindow graphWindow;
+    void disableButtons() {
+        // uitvoeren op "main" thread
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            // buttons onklikbaar maken
+            gtk_widget_set_sensitive((GtkWidget*) toggle1, FALSE);
+            gtk_widget_set_sensitive((GtkWidget*) toggle2, FALSE);
+            gtk_widget_set_sensitive((GtkWidget*) toggle3, FALSE);
+            // tekst instellen
+            gtk_button_set_label(toggle1, "Niet beschikbaar");
+            gtk_button_set_label(toggle2, "Niet beschikbaar");
+            gtk_button_set_label(toggle3, "Niet beschikbaar");
+            return FALSE;
+        }), NULL);
+    }
+    void updateButtons() {
+        // uitvoeren op "main" thread
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            // buttons klikbaar maken
+            gtk_widget_set_sensitive((GtkWidget*) toggle1, TRUE);
+            gtk_widget_set_sensitive((GtkWidget*) toggle2, TRUE);
+            gtk_widget_set_sensitive((GtkWidget*) toggle3, TRUE);
+            // tekst instellen
+            gtk_button_set_label(toggle1, GraphContext::data[Graph::graphType].buttonDiscription[0]);
+            gtk_button_set_label(toggle2, GraphContext::data[Graph::graphType].buttonDiscription[1]);
+            gtk_button_set_label(toggle3, GraphContext::data[Graph::graphType].buttonDiscription[2]);
+            return FALSE;
+        }), NULL);
+    }
 };
+
+GtkButton* BottomPanel::toggle1,* BottomPanel::toggle2,* BottomPanel::toggle3;
 
 struct MeasureProperties {
     GtkLabel* description[3];
@@ -222,8 +461,6 @@ struct MainWindow {
     BottomPanel bottomPanel;
 } mainWindow;
 
-
-Graph graphs[3];
 GdkRGBA colors[3] { {.75, 1, .75, 1}, {1, .75, .75, 1}, {1, .75, .75, 1} };
 CalibrationDialog calibrationDialog;
 
@@ -275,6 +512,9 @@ extern "C" {
     G_MODULE_EXPORT void determine_type(GtkWidget* widget, gpointer user_data) {
         determenRequested = true;
     }
+    G_MODULE_EXPORT void measure(GtkWidget* widget, gpointer user_data) {
+        measurementRequested = true;
+    }
     #else
     void destroy_signal(GtkWidget* w, gpointer user_data) {
         destroy();
@@ -319,6 +559,9 @@ extern "C" {
     }
     void determine_type(GtkWidget* widget, gpointer user_data) {
         determenRequested = true;
+    }
+    void measure(GtkWidget* widget, gpointer user_data) {
+        measurementRequested = true;
     }
     #endif
 }
@@ -684,7 +927,44 @@ void UserInterface::init(int* argc, char *** argv) {
                 determenRequested = false;
             }
             if (measurementRequested) {
-                measure();
+                switch (currentComponent.type) {
+                    case RESISTOR: {
+                        currentComponent.data.resistorData.measure();
+                        break;
+                    }
+                    case CAPACITOR: {
+                        currentComponent.data.capacitorData.measure();
+                        break;
+                    }
+                    case DIODE: {
+                        currentComponent.data.diodeData.measure();
+                        break;
+                    }
+                    case BJT_NPN: {
+                        currentComponent.data.bjtNpnData.measure();
+                        break;
+                    }
+                    case BJT_PNP: {
+                        
+                        break;
+                    }
+                    case MOSFET_NMOS: {
+                        // TODO
+                        
+                        break;
+                    }
+                    case MOSFET_PMOS: {
+                        // TODO
+                        
+                        break;
+                    }
+                    case MOSFET_JFET: {
+                        // TODO
+                        
+                        break;
+                    }
+                }
+                mainWindow.bottomPanel.graphWindow.updateGraph();
                 measurementRequested = false;
             }
             sleep_ms(100);
@@ -692,8 +972,16 @@ void UserInterface::init(int* argc, char *** argv) {
     });
 
     g_object_unref(builder);
+    // enable main screen
     gtk_widget_show(window);
+    // show calibration dialog
     gtk_widget_show((GtkWidget*) calibrationDialog.self);
+    // make unused labels invisible
+    gtk_widget_set_opacity((GtkWidget*) mainWindow.bottomPanel.graphWindow.unit0, 0.0);
+    gtk_widget_set_opacity((GtkWidget*) mainWindow.bottomPanel.graphWindow.unit3, 0.0);
+    // make graph invisible
+    mainWindow.bottomPanel.graphWindow.makeCompletelyInvisible();
+    // start gtk functionality
     gtk_main();
 }
 
@@ -701,11 +989,7 @@ unsigned int segment;
 double segmentProgress;
 
 void updateProgress() {
-    auto lambda = +[]() {
-        gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 0.33 * segment + segmentProgress / 3.0);
-        return FALSE;
-    };
-    g_idle_add(G_SOURCE_FUNC(lambda), NULL);
+    g_idle_add(G_SOURCE_FUNC(+[](){ gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 0.33 * segment + segmentProgress / 3.0); return FALSE; }), NULL);
 }
 
 void calibrate() {

@@ -37,6 +37,10 @@ class Probe {
         void setOffset(Voltage);
         // voltage is in mV
         void setVoltage(UVoltage);
+        // increase the set DAC voltage by exactly 1 bit
+        void increaseVoltage();
+        // decrease the set DAC voltage by exactly 1 bit
+        void decreaseVoltage();
         // newShunt is in Ohm
         void setShunt(float newShunt);
         // expectedCurrent is in µA

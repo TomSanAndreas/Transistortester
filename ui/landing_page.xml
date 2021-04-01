@@ -651,6 +651,7 @@ en op "Kalibreer" te drukken.</property>
                     <property name="valign">center</property>
                     <property name="margin_start">15</property>
                     <property name="margin_end">15</property>
+                    <signal name="clicked" handler="measure" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>

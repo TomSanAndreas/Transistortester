@@ -49,8 +49,20 @@ void Probe::setVoltage(UVoltage newVoltage) {
         isDacTurnedOn = true;
     }
     currentVoltageSet = newVoltage;
-    dac.setVoltage(newVoltage / voltBitRatio + .5); // the addition of 0.5 makes it so x.5 and up would round up when casted to an int
-    currentVoltageBitsSet = newVoltage / voltBitRatio + .5;
+    currentVoltageBitsSet = newVoltage / voltBitRatio + .5; // the addition of 0.5 makes it so x.5 and up would round up when casted to an int
+    dac.setVoltage(currentVoltageBitsSet);
+}
+
+void Probe::increaseVoltage() {
+    ++currentVoltageBitsSet;
+    currentVoltageSet = exactVoltageLUT[currentVoltageSet];
+    dac.setVoltage(currentVoltageBitsSet);
+}
+
+void Probe::decreaseVoltage() {
+    --currentVoltageBitsSet;
+    currentVoltageSet = exactVoltageLUT[currentVoltageSet];
+    dac.setVoltage(currentVoltageBitsSet);
 }
 
 void Probe::setShunt(float newShunt) {
