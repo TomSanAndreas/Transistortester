@@ -86,7 +86,7 @@ struct ResistorData {
         // measure
         MeasureResult result1 = connectedPins.first->doFullMeasure(10);
         MeasureResult result2 = connectedPins.second->doFullMeasure(10);
-        resistance = ((double) (result1.avgV - result2.avgV)) / result2.avgA;
+        resistance = ((double) (result1.avgV - result2.avgV)) * 1000 / result2.avgA;
         connectedPins.first->turnOff();
         connectedPins.second->turnOff();
     }
