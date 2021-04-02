@@ -156,7 +156,8 @@ struct BjtNpnData {
     double minBeta;
     double maxBeta;
     ProbeCombination collectorBaseEmitterPins;
-    void measure() {
+    // "init" de transistor, m.a.w. zet VBE zo klein mogelijk, zodat metingen kunnen worden gedaan 
+    void init() {
         // emitter is GND
         collectorBaseEmitterPins.third->setVoltage(0);
         // collector is 500mV
@@ -170,6 +171,38 @@ struct BjtNpnData {
             collectorBaseEmitterPins.second->decreaseVoltage();
             collectorCurrent = collectorBaseEmitterPins.first->readAverageCurrent(25);
         }
+    }
+    // "destroy" de meetsetup, door alle gebruikte pinnen af te leggen
+    void destroy() {
+        collectorBaseEmitterPins.first->turnOff();
+        collectorBaseEmitterPins.second->turnOff();
+        collectorBaseEmitterPins.third->turnOff();
+    }
+    void measure() {
+        // eerst wordt VBE zo klein mogelijk gezet:
+        init();
+        // beta kan bepaald worden via een gemiddelde van een eerste 5 meetpunten (er wordt veronderstelt dat er nog geen teken van saturatie is dan)
+        collectorBaseEmitterPins.second->increaseVoltage();
+        averageBeta = ((double) collectorBaseEmitterPins.first->readAverageCurrent(10)) / collectorBaseEmitterPins.second->readAverageCurrent(10);
+        minBeta = averageBeta;        
+        maxBeta = averageBeta;        
+        double currentBeta;
+        for (unsigned int i = 0; i < 5; ++i) {
+            collectorBaseEmitterPins.second->increaseVoltage();
+            currentBeta = ((double) collectorBaseEmitterPins.first->readAverageCurrent(10)) / collectorBaseEmitterPins.second->readAverageCurrent(10);
+            if (currentBeta > maxBeta) {
+                maxBeta = currentBeta;
+            } else if (currentBeta < minBeta) {
+                minBeta = currentBeta;
+            }
+            averageBeta += currentBeta;
+        }
+        averageBeta /= 5;
+        destroy();
+    }
+    void graphIbIc() {
+        // eerst wordt VBE zo klein mogelijk gezet
+        init();
         // vanaf hier kan de verhouding IB <-> IC gemeten worden, totdat de basisstroom te hoog is, voor een grafiek te vormen
         MeasureResult basisMeting, collectorMeting;
         basisMeting = collectorBaseEmitterPins.second->doFullMeasure(10);
@@ -187,6 +220,7 @@ struct BjtNpnData {
         unsigned int i = 1;
         collectorBaseEmitterPins.second->increaseVoltage();
         Current baseCurrent = collectorBaseEmitterPins.second->readAverageCurrent(10);
+        Current collectorCurrent = collectorBaseEmitterPins.first->readAverageCurrent(10);
         while (collectorCurrent > -8000 && i < 50) {
             basisMeting = collectorBaseEmitterPins.second->doFullMeasure(10);
             collectorMeting = collectorBaseEmitterPins.first->doFullMeasure(10);
@@ -221,23 +255,8 @@ struct BjtNpnData {
                 graphs[j].data[i].y = 0;
             }
         }
-        // beta kan nu bepaald worden via een gemiddelde van de eerste 5 meetpunten (er wordt veronderstelt dat er nog geen teken van saturatie is dan)
-        averageBeta = ((double) graphs[0].data[i].y) / graphs[0].data[i].x;
-        minBeta = averageBeta;
-        maxBeta = averageBeta;
-        double currentBeta;
-        for (unsigned int i = 1; i < 5; ++i) {
-            currentBeta = ((double) graphs[0].data[i].y) / graphs[0].data[i].x;
-            if (currentBeta > maxBeta) {
-                maxBeta = currentBeta;
-            } else if (currentBeta < minBeta) {
-                minBeta = currentBeta;
-            }
-            averageBeta += currentBeta;
-        }
-        averageBeta /= 5;
-        // beta = ((double) baseEmitterPins.third->readAverageCurrent(10)) / baseEmitterPins.first->readAverageCurrent(10);
         Graph::graphType = GraphContext::IB_IC;
+        destroy();
     }
 };
 
@@ -769,10 +788,10 @@ void determineType() {
         MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
         MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
         MeasureResult results3 = ProbeCombination::possibleCombinations[i].third->doFullMeasure(10);
-        // check if collector and emitter current is similar
+        // check if collector + base and emitter current is similar
         if (ALMOSTEQUAL(ABS(results1.avgA) + ABS(results2.avgA), results3.avgA, .05)) {
-            // check current direction
-            if (results2.avgA < 0 && results1.avgA < 0 && results3.avgA > 0) {
+            // check current direction and their relative size, so a collector & base can be correctly detected
+            if (results2.avgA < -5 && results1.avgA < -50 && results3.avgA > 50 && results1.avgA < results2.avgA) {
                 currentComponent.type = ComponentType::BJT_NPN;
                 currentComponent.data.bjtNpnData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
                 return;
@@ -797,7 +816,7 @@ void determineType() {
         // check if collector and emitter current is similar
         if (ALMOSTEQUAL(ABS(results1.avgA) + ABS(results2.avgA), results3.avgA, .05)) {
             // check current direction
-            if (results2.avgA > 0 && results1.avgA > 0 && results3.avgA < 0) {
+            if (results2.avgA > 5 && results1.avgA > 50 && results3.avgA < -50 && results1.avgA > results1.avgA) {
                 currentComponent.type = ComponentType::BJT_PNP;
                 currentComponent.data.bjtPnpData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
                 return;
@@ -924,9 +943,6 @@ void UserInterface::init(int* argc, char *** argv) {
             if (determenRequested) {
                 determineType();
                 mainWindow.topPanel.component.update();
-                determenRequested = false;
-            }
-            if (measurementRequested) {
                 switch (currentComponent.type) {
                     case RESISTOR: {
                         currentComponent.data.resistorData.measure();
@@ -945,8 +961,41 @@ void UserInterface::init(int* argc, char *** argv) {
                     }
                     case BJT_NPN: {
                         currentComponent.data.bjtNpnData.measure();
-                        mainWindow.bottomPanel.graphWindow.updateGraph();
                         mainWindow.topPanel.component.update();
+                        break;
+                    }
+                    case BJT_PNP: {
+                        
+                        break;
+                    }
+                    case MOSFET_NMOS: {
+                        // TODO
+                        
+                        break;
+                    }
+                    case MOSFET_PMOS: {
+                        // TODO
+                        
+                        break;
+                    }
+                    case MOSFET_JFET: {
+                        // TODO
+                        
+                        break;
+                    }
+                    case UNKNOWN_DEVICE:
+                    default: {
+                        break;
+                    }
+                }
+                mainWindow.topPanel.properties.update();
+                determenRequested = false;
+            }
+            if (measurementRequested) {
+                switch (currentComponent.type) {
+                    case BJT_NPN: {
+                        currentComponent.data.bjtNpnData.graphIbIc();
+                        mainWindow.bottomPanel.graphWindow.updateGraph();
                         break;
                     }
                     case BJT_PNP: {
