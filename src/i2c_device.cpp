@@ -12,66 +12,32 @@ I2C_Device::I2C_Device(byte address, byte bufferSize)
 , bytesToSend({new byte[bufferSize], bufferSize})
 , currentSendBufferSize(0)
 , bytesReceived({new byte[bufferSize], bufferSize})
-, currentReceivedBufferSize(0) {
-    #ifdef DEBUG_ACTIVE
-    if (!hasResponded(fileHandle)) {
-        debugStatus |= (uint64_t) Status::NoResponse | (uint64_t) Status::Error;
-        printStatus();
-    } else {
-        std::cout << "Apparaat 0x" << std::hex << (uint64_t) address << " succesvol geinitialiseerd!\n";
-    }
-    #endif
-}
+, currentReceivedBufferSize(0) {}
 
 I2C_Device::~I2C_Device() {
     delete[] bytesToSend.data;
     delete[] bytesReceived.data;
 }
 
-Status I2C_Device::send() {
+void I2C_Device::send() {
     write(fileHandle, bytesToSend.data, currentSendBufferSize);
     currentSendBufferSize = 0;
-    return Status::Success;
 }
 
-Status I2C_Device::sendAndAwait(byte nBytes) {
-    Status s = send();
+void I2C_Device::sendAndAwait(byte nBytes) {
+    send();
     read(fileHandle, bytesReceived.data + currentReceivedBufferSize, nBytes);
     currentReceivedBufferSize += nBytes;
-    return Status::Success;
 }
 
-Status I2C_Device::queue(const Buffer& b) {
-    if (b.size + currentSendBufferSize > bytesToSend.size) {
-        #ifdef DEBUG_ACTIVE
-        debugStatus |= (uint64_t) Status::BufferOverflow;
-        #endif
-        return Status::BufferOverflow;
-    }
+void I2C_Device::queue(const Buffer& b) {
     for (byte i = 0; i < b.size; ++i) {
         bytesToSend.data[currentSendBufferSize + i] = b.data[i];
     }
     currentSendBufferSize += b.size;
-    return Status::Success;
 }
 
 const Buffer& I2C_Device::readResponse() {
     currentReceivedBufferSize = 0;
     return bytesReceived;
 }
-
-#ifdef DEBUG_ACTIVE
-void I2C_Device::printStatus() {
-    if (debugStatus & (uint64_t) Status::Error) {
-        std::cout << "An other error has occurred with device 0x" << std::hex << (uint64_t) address << "\n";
-    }
-    if (debugStatus & (uint64_t) Status::BufferOverflow) {
-        std::cout << "A buffer overflow has occurred with device 0x" << std::hex << (uint64_t) address << "\n";
-    }
-    if (debugStatus & (uint64_t) Status::NoResponse) {
-        std::cout << "Device 0x" << std::hex << (uint64_t) address << " has not responded.\n";
-    }
-    // reset status
-    debugStatus = 0;
-}
-#endif

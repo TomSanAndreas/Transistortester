@@ -88,7 +88,6 @@ void initialiseScreen() {
 
     unsigned int t = (max_x - 12) / 3 - 2;
     unsigned int r = 5 + t;
-    unsigned int s = (max_x - 12) / 6;
     unsigned int k;
     for (uint8_t i = 0; i < 3; ++i) {
         k = r * i + 4;
@@ -193,7 +192,7 @@ void initialiseScreen() {
     printw(" Herstarten ");
 }
 
-int interpretNumber(const char * str, unsigned int* errorIndex) {
+int interpretNumber(const char * str, int* errorIndex) {
     int result = 0;
     unsigned int j = 0;
     bool negative = false;
@@ -221,7 +220,7 @@ double progress = 0.0;
 void calibrateProgress() {
     if (progress < .99) {
         char buffer[25];
-        sprintf(buffer, "Kalibreren... %.2f%", progress * 100);
+        sprintf(buffer, "Kalibreren... %.2f%%", progress * 100);
         move(cursorLocation.y, 5);
         printw(buffer);
         refresh();
@@ -263,7 +262,7 @@ char* interpretCommand(const char * cmd) {
         }
         return returnText;
     } else if (cmd[0] == 'v') {
-        unsigned int verkeerdeIndex; // gebruikt voor errortekst indien nodig
+        int verkeerdeIndex; // gebruikt voor errortekst indien nodig
         int voltage;
         if (cmd[1] == ' ') {
             if (probeMode) {
@@ -321,7 +320,7 @@ char* interpretCommand(const char * cmd) {
             return returnText;
         }
     } else if (cmd[0] == 's') {
-        unsigned int verkeerdeIndex;
+        int verkeerdeIndex;
         int shuntWaarde;
         if (cmd[1] == ' ') {
             if (!probeMode) {
@@ -359,7 +358,7 @@ char* interpretCommand(const char * cmd) {
             return returnText;
         }
     } else if (cmd[0] == 'c' && cmd[1] == 'u') { // current
-        unsigned int verkeerdeIndex;
+        int verkeerdeIndex;
         int currentWaarde;
         if (cmd[2] == ' ') {
             if (!probeMode) {
@@ -391,8 +390,7 @@ char* interpretCommand(const char * cmd) {
         } else if (currentWaarde == 0) {
             char* returnText = new char[50];
             sprintf(returnText,
-            "Gelieve geen 0 uA als referentie te gebruiken."
-            , &cmd[verkeerdeIndex]);
+            "Gelieve geen 0 uA als referentie te gebruiken.");
             return returnText;
         } else {
             unsigned int nieuweShuntWaarde = Probe::probe[probeNr - 1].adjustShuntUsingCurrent(currentWaarde) * 1000;
@@ -404,7 +402,7 @@ char* interpretCommand(const char * cmd) {
             return returnText;
         }
     } else if (cmd[0] == 'o') { // offset
-        unsigned int verkeerdeIndex;
+        int verkeerdeIndex;
         int offsetWaarde;
         if (cmd[1] == ' ') {
             if (!probeMode) {
@@ -692,7 +690,7 @@ namespace CalibrationWindow {
             }
             case KEY_BACKSPACE: // backspace, 8 komt ook soms op sommige systemen voor
             case 8: {
-                if (!probeMode && cursorLocation.x >= 8 || probeMode && cursorLocation.x >= 15) {
+                if ((!probeMode && cursorLocation.x >= 8) || (probeMode && cursorLocation.x >= 15)) {
                     move(cursorLocation.y, cursorLocation.x -= 1);
                     printw("  "); // 2 spaties wegens een mogelijke cursor die anders achter blijft
                 }

@@ -14,7 +14,7 @@ bool hasResponded(int) { return true; }
 // deze functies komen van unistd.h, voor (via file handles) bepaalde operaties te doen
 
 // __nbytes lezen uit __fd en opslaan in __buf
-int read (int __fd, void *__buf, int __nbytes) { unsigned char *_buf = (unsigned char*) __buf; for (uint64_t i = 0; i < __nbytes; ++i) _buf[i] = 5; return 0; }
+int read (int __fd, void *__buf, int __nbytes) { unsigned char *_buf = (unsigned char*) __buf; for (int i = 0; i < __nbytes; ++i) _buf[i] = 5; return 0; }
 
 // __n bytes schrijven naar __fd, vanaf __buf
 int write (int __fd, const void *__buf, int __n) { return 0; }

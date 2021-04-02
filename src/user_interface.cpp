@@ -6,7 +6,7 @@
 #endif
 
 // determine if both values are at least almost equal, only percentage% different max
-#define ALMOSTEQUAL(value1, value2, percentage) ABS(ABS(value1) - ABS(value2)) < percentage * ABS(value1)
+#define ALMOSTEQUAL(value1, value2, percentage) (ABS(ABS(value1) - ABS(value2)) < percentage * ABS(value1))
 
 void calibrate();
 void destroy();
@@ -499,13 +499,13 @@ extern "C" {
         scaleY = ((double) height) / (Graph::maxY - Graph::minY);
         // raster tekenen: 21 verticale lijnen en 9 horizontale lijnen op gelijke afstand
         cairo_set_source_rgba(cr, 0, 0, 0, .1);
-        int nPixelsVertical = height / 9;
+        unsigned int nPixelsVertical = height / 9;
         for (unsigned int i = nPixelsVertical >> 1; i < 11 * nPixelsVertical; i += nPixelsVertical) {
             cairo_line_to(cr, 0.01 * width, i);
             cairo_line_to(cr, 0.99 * width, i);
             cairo_stroke(cr);
         }
-        int nPixelsHorizontal = width / 21;
+        unsigned int nPixelsHorizontal = width / 21;
         for (unsigned int i = nPixelsHorizontal >> 1; i < 23 * nPixelsHorizontal; i += nPixelsHorizontal) {
             cairo_line_to(cr, i, 0.01 * height);
             cairo_line_to(cr, i, 0.99 * height);
@@ -514,7 +514,9 @@ extern "C" {
         // plotten grafieken
         for (unsigned char i = 0; i < 3; ++i) {
             for (unsigned int j = 0; j < 50; ++j) {
-                cairo_line_to(cr, graphs[i].data[j].x * scaleX, height - graphs[i].data[j].y * scaleY);
+		if (graphs[i].data[j].x == 0 && graphs[i].data[j].y == 0)
+			break;
+                cairo_line_to(cr, (graphs[i].data[j].x - Graph::minX) * scaleX, height - (graphs[i].data[j].y - Graph::minY) * scaleY);
             }
             gdk_cairo_set_source_rgba(cr, &colors[i]);
             cairo_stroke(cr);
@@ -667,7 +669,7 @@ void determineType() {
         MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
         MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
         // check if current is big enough (max ~20K resistor), with a 1% margin of error
-        if ((results1.avgA < -25 && results2.avgA > 25) || (results1.avgA > 25 && results2.avgA < -25) && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
+        if (((results1.avgA < -25 && results2.avgA > 25) || (results1.avgA > 25 && results2.avgA < -25)) && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
             currentComponent.type = ComponentType::RESISTOR;
             currentComponent.data.resistorData.connectedPins = ProbeCombination::possibleCombinations[i];
             return;
@@ -787,7 +789,7 @@ void UserInterface::init(int* argc, char *** argv) {
 
     // init GUI
     GtkBuilder* builder;
-    GtkWidget* window,* graph;
+    GtkWidget* window;
     #ifndef WINDOWS
     XInitThreads();
     #endif
@@ -981,6 +983,10 @@ void UserInterface::init(int* argc, char *** argv) {
                     case MOSFET_JFET: {
                         // TODO
                         
+                        break;
+                    }
+                    case UNKNOWN_DEVICE:
+                    default: {
                         break;
                     }
                 }

@@ -15,7 +15,7 @@ rpi: src/*.cpp
 
 win: src/*.cpp
 	mkdir -p bin
-	$(GEBRUIKTE_COMPILER) -o bin/$(BINARY_NAAM) src/*.cpp $(GEBRUIKTE_WIN_DEPENDENCIES) $(GEBRUIKTE_WIN_INCLUDES)
+	$(GEBRUIKTE_COMPILER) -o bin/$(BINARY_NAAM) -Wall src/*.cpp $(GEBRUIKTE_WIN_DEPENDENCIES) $(GEBRUIKTE_WIN_INCLUDES)
 
 linux: src/*.cpp
 	mkdir -p bin
