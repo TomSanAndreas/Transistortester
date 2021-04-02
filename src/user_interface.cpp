@@ -152,56 +152,50 @@ struct DiodeData {
 };
 
 struct BjtNpnData {
-    double beta;
-    unsigned int saturationVoltageCollectorEmitter;
-    unsigned int saturationVoltageBaseEmitter;
-    ProbeCombination baseEmitterPins;
-    ProbeCombination collectorEmitterPins;
-    ProbeCombination collectorBasePins;
+    double averageBeta;
+    double minBeta;
+    double maxBeta;
+    ProbeCombination collectorBaseEmitterPins;
     void measure() {
         // emitter is GND
-        baseEmitterPins.second->setVoltage(0);
+        collectorBaseEmitterPins.third->setVoltage(0);
         // collector is 500mV
-        baseEmitterPins.third->setVoltage(500);
+        collectorBaseEmitterPins.first->setVoltage(500);
         // basis is 710 mV
-        baseEmitterPins.first->setVoltage(710);
-        Current collectorCurrent = baseEmitterPins.third->readCurrent();
+        collectorBaseEmitterPins.second->setVoltage(710);
+        Current collectorCurrent = collectorBaseEmitterPins.first->readCurrent();
         // NPN heeft stroom in de basis, dus wordt deze als negatief gemeten
         // VBE verlagen door B te laten dalen, dit tot baseCurrent klein genoeg is (in absolute waarde)
-        while (collectorCurrent < -1 && baseEmitterPins.first->currentVoltageSet > 200) {
-            baseEmitterPins.first->decreaseVoltage();
-            collectorCurrent = collectorEmitterPins.third->readAverageCurrent(25);
+        while (collectorCurrent < -1 && collectorBaseEmitterPins.second->currentVoltageSet > 200) {
+            collectorBaseEmitterPins.second->decreaseVoltage();
+            collectorCurrent = collectorBaseEmitterPins.first->readAverageCurrent(25);
         }
-        // beta kan nu bepaald worden
-	// FIXME
-        // beta = ((double) baseEmitterPins.third->readAverageCurrent(10)) / baseEmitterPins.first->readAverageCurrent(10);
         // vanaf hier kan de verhouding IB <-> IC gemeten worden, totdat de basisstroom te hoog is, voor een grafiek te vormen
-
-        MeasureResult result1, result2;
-        result1 = baseEmitterPins.first->doFullMeasure(10);
-        result2 = baseEmitterPins.third->doFullMeasure(10);
-        graphs[0].data[0].x = - result1.avgA;
-        graphs[0].data[0].y = - result2.avgA;
-        graphs[1].data[0].x = - result1.minA;
-        graphs[1].data[0].y = - result2.minA;
-        graphs[2].data[0].x = - result1.maxA;
-        graphs[2].data[0].y = - result2.maxA;
+        MeasureResult basisMeting, collectorMeting;
+        basisMeting = collectorBaseEmitterPins.second->doFullMeasure(10);
+        collectorMeting = collectorBaseEmitterPins.first->doFullMeasure(10);
+        graphs[0].data[0].x = - basisMeting.avgA;
+        graphs[0].data[0].y = - collectorMeting.avgA;
+        graphs[1].data[0].x = - basisMeting.minA;
+        graphs[1].data[0].y = - collectorMeting.minA;
+        graphs[2].data[0].x = - basisMeting.maxA;
+        graphs[2].data[0].y = - collectorMeting.maxA;
         Graph::minX = graphs[0].data[0].x;
         Graph::maxX = graphs[0].data[0].x;
         Graph::minY = graphs[0].data[0].y;
         Graph::maxY = graphs[0].data[0].y;
         unsigned int i = 1;
-        baseEmitterPins.first->increaseVoltage();
-	Current baseCurrent = baseEmitterPins.first->readAverageCurrent(10);
+        collectorBaseEmitterPins.second->increaseVoltage();
+        Current baseCurrent = collectorBaseEmitterPins.second->readAverageCurrent(10);
         while (collectorCurrent > -8000 && i < 50) {
-            result1 = baseEmitterPins.first->doFullMeasure(10);
-            result2 = baseEmitterPins.third->doFullMeasure(10);
-            graphs[0].data[i].x = - result1.avgA;
-            graphs[0].data[i].y = - result2.avgA;
-            graphs[1].data[i].x = - result1.minA;
-            graphs[1].data[i].y = - result2.minA;
-            graphs[2].data[i].x = - result1.maxA;
-            graphs[2].data[i].y = - result2.maxA;
+            basisMeting = collectorBaseEmitterPins.second->doFullMeasure(10);
+            collectorMeting = collectorBaseEmitterPins.first->doFullMeasure(10);
+            graphs[0].data[i].x = - basisMeting.avgA;
+            graphs[0].data[i].y = - collectorMeting.avgA;
+            graphs[1].data[i].x = - basisMeting.minA;
+            graphs[1].data[i].y = - collectorMeting.minA;
+            graphs[2].data[i].x = - basisMeting.maxA;
+            graphs[2].data[i].y = - collectorMeting.maxA;
             if (graphs[0].data[i].x < Graph::minX) {
                 Graph::minX = graphs[0].data[i].x;
             }
@@ -214,29 +208,44 @@ struct BjtNpnData {
             if (graphs[0].data[i].y > Graph::maxY) {
                 Graph::maxY = graphs[0].data[i].y;
             }
-	    while (baseEmitterPins.first->readAverageCurrent(10) > baseCurrent - 2)
-		baseEmitterPins.first->increaseVoltage();
+            while (collectorBaseEmitterPins.second->readAverageCurrent(10) > baseCurrent - 2) {
+                collectorBaseEmitterPins.second->increaseVoltage();
+            }
             ++i;
-            baseCurrent = result1.avgA;
-	    collectorCurrent = result2.avgA;
+            baseCurrent = basisMeting.avgA;
+            collectorCurrent = collectorMeting.avgA;
         }
-	if (i != 50) {
-		for (unsigned int j = 0; j < 3; ++j) {
-			graphs[j].data[i].x = 0;
-			graphs[j].data[i].y = 0;
-		}
-	}
-	Graph::graphType = GraphContext::IB_IC;
+        if (i != 50) {
+            for (unsigned int j = 0; j < 3; ++j) {
+                graphs[j].data[i].x = 0;
+                graphs[j].data[i].y = 0;
+            }
+        }
+        // beta kan nu bepaald worden via een gemiddelde van de eerste 5 meetpunten (er wordt veronderstelt dat er nog geen teken van saturatie is dan)
+        averageBeta = ((double) graphs[0].data[i].y) / graphs[0].data[i].x;
+        minBeta = averageBeta;
+        maxBeta = averageBeta;
+        double currentBeta;
+        for (unsigned int i = 1; i < 5; ++i) {
+            currentBeta = ((double) graphs[0].data[i].y) / graphs[0].data[i].x;
+            if (currentBeta > maxBeta) {
+                maxBeta = currentBeta;
+            } else if (currentBeta < minBeta) {
+                minBeta = currentBeta;
+            }
+            averageBeta += currentBeta;
+        }
+        averageBeta /= 5;
+        // beta = ((double) baseEmitterPins.third->readAverageCurrent(10)) / baseEmitterPins.first->readAverageCurrent(10);
+        Graph::graphType = GraphContext::IB_IC;
     }
 };
 
 struct BjtPnpData {
-    double beta;
-    unsigned int saturationVoltageCollectorEmitter;
-    unsigned int saturationVoltageBaseEmitter;
-    ProbeCombination baseEmitterPins;
-    ProbeCombination collectorEmitterPins;
-    ProbeCombination collectorBasePins;
+    double averageBeta;
+    double minBeta;
+    double maxBeta;
+    ProbeCombination collectorBaseEmitterPins;
 };
 
 struct MosfetNmosData {
@@ -442,21 +451,189 @@ const char* MeasureProperties::incrementValueNames[] = {
 };
 
 struct ComponentProperties {
-    GtkLabel* property[4];
+    static GtkLabel* property[4];
     static const char* propertyNames[];
+    static inline void setInvisible() {
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            gtk_widget_set_opacity((GtkWidget*) property[0], 0.0);
+            gtk_widget_set_opacity((GtkWidget*) property[1], 0.0);
+            gtk_widget_set_opacity((GtkWidget*) property[2], 0.0);
+            gtk_widget_set_opacity((GtkWidget*) property[3], 0.0);
+            return FALSE;
+        }), NULL);
+    }
+    static inline void setVisible() {
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            gtk_widget_set_opacity((GtkWidget*) property[0], 1.0);
+            gtk_widget_set_opacity((GtkWidget*) property[1], 1.0);
+            gtk_widget_set_opacity((GtkWidget*) property[2], 1.0);
+            gtk_widget_set_opacity((GtkWidget*) property[3], 1.0);
+            return FALSE;
+        }), NULL);
+    }
+    static void update() {
+        // main thread
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            char buffer[35];
+            switch (currentComponent.type) {
+                case RESISTOR: {
+                    setVisible();
+                    sprintf(buffer, "Weerstandswaarde: %f", currentComponent.data.resistorData.resistance);
+                    gtk_label_set_text(property[0], buffer);
+                    break;
+                }
+                case CAPACITOR: {
+                    setVisible();
+                    sprintf(buffer, "Capaciteit: %f", currentComponent.data.capacitorData.capacitance);
+                    gtk_label_set_text(property[0], buffer);
+                    break;
+                }
+                case DIODE: {
+                    setVisible();
+                    sprintf(buffer, "Spanningsval: %f", ((double) currentComponent.data.diodeData.voltageDrop) / 1000);
+                    gtk_label_set_text(property[0], buffer);
+                    break;
+                }
+                case BJT_NPN: {
+                    setVisible();
+                    sprintf(buffer, "Minimum beta: %f", ((double) currentComponent.data.bjtNpnData.minBeta) / 1000);
+                    gtk_label_set_text(property[0], buffer);
+                    sprintf(buffer, "Gemiddelde beta: %f", ((double) currentComponent.data.bjtNpnData.averageBeta) / 1000);
+                    gtk_label_set_text(property[1], buffer);
+                    sprintf(buffer, "Maximum beta: %f", ((double) currentComponent.data.bjtNpnData.maxBeta) / 1000);
+                    gtk_label_set_text(property[2], buffer);
+                    break;
+                }
+                case BJT_PNP: {
+                    setVisible();
+                    break;
+                }
+                case MOSFET_NMOS: {
+                    setVisible();
+                    break;
+                }
+                case MOSFET_PMOS: {
+                    setVisible();
+                    break;
+                }
+                case MOSFET_JFET: {
+                    setVisible();
+                    break;
+                }
+                case UNKNOWN_DEVICE:
+                default: {
+                    setInvisible();
+                    break;
+                }
+            }
+            return FALSE;
+        }), NULL);
+    }
 };
+
+GtkLabel* ComponentProperties::property[4];
 
 const char* ComponentProperties::propertyNames[] = {
     "property_0", "property_1", "property_2", "property_3"
 };
 
 struct ComponentLayout {
-    GtkLabel* pinout[3];
+    static GtkLabel* pinout[3];
     static const char* pinoutNames[];
-    GtkImage* symbol;
-    GtkLabel* componentName;
+    static GtkImage* symbol;
+    static GtkLabel* componentName;
     static const char* possibleComponentNames[];
+    static void update() {
+        // updaten op main thread
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            gtk_label_set_text(componentName, ComponentLayout::possibleComponentNames[currentComponent.type]);
+            char buffer[15];
+            switch (currentComponent.type) {
+                case RESISTOR: {
+                    gtk_image_set_from_file(symbol, "../ui/resistor.png");
+                    gtk_widget_set_opacity((GtkWidget*) pinout[1], 0.0);
+                    sprintf(buffer, "Pin %d", currentComponent.data.resistorData.connectedPins.firstPinNumber);
+                    gtk_label_set_text(pinout[0], buffer);
+                    sprintf(buffer, "Pin %d", currentComponent.data.resistorData.connectedPins.secondPinNumber);
+                    gtk_label_set_text(pinout[2], buffer);
+                    break;
+                }
+                case CAPACITOR: {
+                    gtk_image_set_from_file(symbol, "../ui/capacitor.png");
+                    gtk_widget_set_opacity((GtkWidget*) pinout[1], 0.0);
+                    sprintf(buffer, "Pin %d", currentComponent.data.capacitorData.connectedPins.firstPinNumber);
+                    gtk_label_set_text(pinout[0], buffer);
+                    sprintf(buffer, "Pin %d", currentComponent.data.capacitorData.connectedPins.secondPinNumber);
+                    gtk_label_set_text(pinout[2], buffer);
+                    break;
+                }
+                case DIODE: {
+                    gtk_image_set_from_file(symbol, "../ui/diode.png");
+                    gtk_widget_set_opacity((GtkWidget*) pinout[1], 0.0);
+                    sprintf(buffer, "Pin %d", currentComponent.data.diodeData.connectedPins.firstPinNumber);
+                    gtk_label_set_text(pinout[0], buffer);
+                    sprintf(buffer, "Pin %d", currentComponent.data.diodeData.connectedPins.secondPinNumber);
+                    gtk_label_set_text(pinout[2], buffer);
+                    break;
+                }
+                case BJT_NPN: {
+                    gtk_image_set_from_file(symbol, "../ui/bjt_npn.png");
+                    gtk_widget_set_opacity((GtkWidget*) pinout[1], 1.0);
+                    sprintf(buffer, "Pin %d: Collector", currentComponent.data.bjtNpnData.collectorBaseEmitterPins.firstPinNumber);
+                    gtk_label_set_text(pinout[0], buffer);
+                    sprintf(buffer, "Pin %d: Basis", currentComponent.data.bjtNpnData.collectorBaseEmitterPins.secondPinNumber);
+                    gtk_label_set_text(pinout[1], buffer);
+                    sprintf(buffer, "Pin %d: Emitter", currentComponent.data.bjtNpnData.collectorBaseEmitterPins.thirdPinNumber);
+                    gtk_label_set_text(pinout[2], buffer);
+                    break;
+                }
+                case BJT_PNP: {
+                    gtk_image_set_from_file(symbol, "../ui/bjt_pnp.png");
+                    gtk_widget_set_opacity((GtkWidget*) pinout[1], 1.0);
+                    sprintf(buffer, "Pin %d: Collector", currentComponent.data.bjtPnpData.collectorBaseEmitterPins.firstPinNumber);
+                    gtk_label_set_text(pinout[0], buffer);
+                    sprintf(buffer, "Pin %d: Basis", currentComponent.data.bjtPnpData.collectorBaseEmitterPins.secondPinNumber);
+                    gtk_label_set_text(pinout[1], buffer);
+                    sprintf(buffer, "Pin %d: Emitter", currentComponent.data.bjtPnpData.collectorBaseEmitterPins.thirdPinNumber);
+                    gtk_label_set_text(pinout[2], buffer);
+                    break;
+                }
+                case MOSFET_NMOS: {
+                    // FIXME
+                    gtk_image_set_from_file(symbol, "../ui/unknown.png");
+                    gtk_widget_set_opacity((GtkWidget*) pinout[1], 1.0);
+                    break;
+                }
+                case MOSFET_PMOS: {
+                    // FIXME
+                    gtk_image_set_from_file(symbol, "../ui/unknown.png");
+                    gtk_widget_set_opacity((GtkWidget*) pinout[1], 1.0);
+                    break;
+                }
+                case MOSFET_JFET: {
+                    // FIXME
+                    gtk_image_set_from_file(symbol, "../ui/unknown.png");
+                    gtk_widget_set_opacity((GtkWidget*) pinout[1], 1.0);
+                    break;
+                }
+                case UNKNOWN_DEVICE:
+                default: {
+                    gtk_image_set_from_file(symbol, "../ui/unknown.png");
+                    gtk_widget_set_opacity((GtkWidget*) pinout[1], 1.0);
+                    gtk_label_set_text(pinout[0], "Pin 1: n.v.t.");
+                    gtk_label_set_text(pinout[1], "Pin 2: n.v.t.");
+                    gtk_label_set_text(pinout[2], "Pin 3: n.v.t.");
+                    break;
+                }
+            }
+            return FALSE;
+        }), NULL);
+    }
 };
+
+GtkLabel* ComponentLayout::pinout[3];
+GtkImage* ComponentLayout::symbol;
+GtkLabel* ComponentLayout::componentName;
 
 const char* ComponentLayout::pinoutNames[] = {
     "pin_1_name", "pin_2_name", "pin_3_name"
@@ -486,10 +663,15 @@ std::thread calibrationThread, measurementThread;
 
 extern "C" {
     #ifdef WINDOWS
-    G_MODULE_EXPORT void destroy_signal(GtkWidget* w, gpointer user_data) {
+    G_MODULE_EXPORT
+    #endif
+    void destroy_signal(GtkWidget* w, gpointer user_data) {
         destroy();
     }
-    G_MODULE_EXPORT gboolean draw_signal(GtkWidget* widget, cairo_t* cr, gpointer data) {
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    gboolean draw_signal(GtkWidget* widget, cairo_t* cr, gpointer data) {
         // afmetingen grafiek in pixels bepalen
         unsigned int width = gtk_widget_get_allocated_width(widget);
         unsigned int height = gtk_widget_get_allocated_height(widget);
@@ -523,135 +705,30 @@ extern "C" {
         }
         return false;
     }
-    G_MODULE_EXPORT void start_calibration(GtkWidget* widget, gpointer user_data) {
-        calibrate();
-    }
-    G_MODULE_EXPORT void close_dialog(GtkWidget* widget, gpointer user_data) {
-        gtk_widget_destroy((GtkWidget*) calibrationDialog.self);
-    }
-    G_MODULE_EXPORT void determine_type(GtkWidget* widget, gpointer user_data) {
-        determenRequested = true;
-    }
-    G_MODULE_EXPORT void measure(GtkWidget* widget, gpointer user_data) {
-        measurementRequested = true;
-    }
-    #else
-    void destroy_signal(GtkWidget* w, gpointer user_data) {
-        destroy();
-    }
-    gboolean draw_signal(GtkWidget* widget, cairo_t* cr, gpointer data) {
-        // afmetingen grafiek in pixels bepalen
-        unsigned int width = gtk_widget_get_allocated_width(widget);
-        unsigned int height = gtk_widget_get_allocated_height(widget);
-        // schalen berekenen
-        double scaleX, scaleY;
-        scaleX = ((double) width) / (Graph::maxX - Graph::minX);
-        scaleY = ((double) height) / (Graph::maxY - Graph::minY);
-        // raster tekenen: 21 verticale lijnen en 9 horizontale lijnen op gelijke afstand
-        cairo_set_source_rgba(cr, 0, 0, 0, .1);
-        int nPixelsVertical = height / 9;
-        for (unsigned int i = nPixelsVertical >> 1; i < 11 * nPixelsVertical; i += nPixelsVertical) {
-            cairo_line_to(cr, 0.01 * width, i);
-            cairo_line_to(cr, 0.99 * width, i);
-            cairo_stroke(cr);
-        }
-        int nPixelsHorizontal = width / 21;
-        for (unsigned int i = nPixelsHorizontal >> 1; i < 23 * nPixelsHorizontal; i += nPixelsHorizontal) {
-            cairo_line_to(cr, i, 0.01 * height);
-            cairo_line_to(cr, i, 0.99 * height);
-            cairo_stroke(cr);
-        }
-        // plotten grafieken
-        for (unsigned char i = 0; i < 3; ++i) {
-            for (unsigned int j = 0; j < 50; ++j) {
-		if (graphs[i].data[j].x == 0 && graphs[i].data[j].y == 0)
-			break;
-                cairo_line_to(cr, (graphs[i].data[j].x - Graph::minX) * scaleX, height - (graphs[i].data[j].y - Graph::minY) * scaleY);
-            }
-            gdk_cairo_set_source_rgba(cr, &colors[i]);
-            cairo_stroke(cr);
-        }
-        return false;
-    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
     void start_calibration(GtkWidget* widget, gpointer user_data) {
         calibrate();
     }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
     void close_dialog(GtkWidget* widget, gpointer user_data) {
         gtk_widget_destroy((GtkWidget*) calibrationDialog.self);
     }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
     void determine_type(GtkWidget* widget, gpointer user_data) {
         determenRequested = true;
     }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
     void measure(GtkWidget* widget, gpointer user_data) {
         measurementRequested = true;
     }
-    #endif
-}
-
-void measure() {
-    // MeasureResult data1, data2;
-    // Probe::probe[start.second].setVoltage(0);
-    // for (unsigned int i = 1; i < 51; ++i) {
-    //     Probe::probe[start.first].setVoltage(i * 100);
-    //     sleep_ms(1);
-    //     data1 = Probe::probe[start.first].doFullMeasure(5);
-    //     data2 = Probe::probe[start.second].doFullMeasure(5);
-    //     for (unsigned char j = 0; j < 3; ++j) {
-    //         graphs[j].data[i - 1].x = data1.usedVoltage;
-    //     }
-    //     graphs[0].data[i - 1].y = (data1.avgV - data2.avgV) / data1.avgA;
-    //     graphs[1].data[i - 1].y = (data1.minV - data2.minV) / data1.maxA;
-    //     graphs[2].data[i - 1].y = (data1.maxV - data2.maxV) / data1.minA;
-
-    //     graphs[0].data[i - 1].x = i;
-    //     graphs[1].data[i - 1].x = i;
-    //     graphs[2].data[i - 1].x = i;
-    //     graphs[0].data[i - 1].y = 5*i;
-    //     graphs[1].data[i - 1].y = 1 / i;
-    //     graphs[2].data[i - 1].y = 2 * i *i;
-    // }
-    // // maxima & minima instellen, eerst oude maxima & minima "resetten"
-    // Graph::minX = graphs[0].data[0].x;
-    // Graph::maxX = graphs[0].data[0].x;
-    // Graph::minY = graphs[0].data[0].y;
-    // Graph::maxY = graphs[0].data[0].y;
-    // for (unsigned char i = 0; i < 3; ++i) {
-    //     for (unsigned int j = 0; j < 50; ++j) {
-    //         if (Graph::minX > graphs[i].data[j].x) {
-    //             Graph::minX = graphs[i].data[j].x;
-    //         }
-    //         if (Graph::maxX < graphs[i].data[j].x) {
-    //             Graph::maxX = graphs[i].data[j].x;
-    //         }
-    //         if (Graph::minY > graphs[i].data[j].y) {
-    //             Graph::minY = graphs[i].data[j].y;
-    //         }
-    //         if (Graph::maxY < graphs[i].data[j].y) {
-    //             Graph::maxY = graphs[i].data[j].y;
-    //         }
-    //     }
-    // }
-    // // TODO: forceer graph draw
-    // // updaten graph labels
-    // char buffer[10];
-    // for (unsigned char i = 0; i < 21; ++i) {
-    //     sprintf(buffer, "%4d%*s", (i + 1) * (Graph::maxX - Graph::minX) / 21, 2, " ");
-    //     gtk_label_set_text(mainWindow.bottomPanel.graphWindow.xLabels[i], buffer);
-    // }
-    // for (unsigned char i = 0; i < 9; ++i) {
-    //     sprintf(buffer, "%8d", (i + 1) * (Graph::maxY - Graph::minY) / 9);
-    //     gtk_label_set_text(mainWindow.bottomPanel.graphWindow.yLabelsLeft[i], buffer);
-    //     // rechterlabels worden momenteel niet gebruikt
-    //     // gtk_label_set_text(mainWindow.bottomPanel.graphWindow.yLabelsRight[i], buffer);
-    //     gtk_widget_set_opacity((GtkWidget*) mainWindow.bottomPanel.graphWindow.yLabelsRight[i], 0.0);
-    // }
-    // // updaten graph units
-    // gtk_label_set_text(mainWindow.bottomPanel.graphWindow.unit0, "");
-    // gtk_label_set_text(mainWindow.bottomPanel.graphWindow.unit1, "mV");
-    // gtk_label_set_text(mainWindow.bottomPanel.graphWindow.unit2, "mA");
-    // // rechterlabel wordt momenteel niet gebruikt
-    // // gtk_label_set_text(mainWindow.bottomPanel.graphWindow.unit3, "mA");
-    // gtk_widget_set_opacity((GtkWidget*) mainWindow.bottomPanel.graphWindow.unit3, 0.0);
 }
 
 void determineType() {
@@ -697,15 +774,7 @@ void determineType() {
             // check current direction
             if (results2.avgA < 0 && results1.avgA < 0 && results3.avgA > 0) {
                 currentComponent.type = ComponentType::BJT_NPN;
-                currentComponent.data.bjtNpnData.baseEmitterPins = {
-                    ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].firstPinNumber
-                };
-                currentComponent.data.bjtNpnData.collectorEmitterPins = {
-                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber
-                };
-                currentComponent.data.bjtNpnData.collectorBasePins = {
-                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber
-                };
+                currentComponent.data.bjtNpnData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
                 return;
             }
         }
@@ -730,15 +799,7 @@ void determineType() {
             // check current direction
             if (results2.avgA > 0 && results1.avgA > 0 && results3.avgA < 0) {
                 currentComponent.type = ComponentType::BJT_PNP;
-                currentComponent.data.bjtPnpData.baseEmitterPins = {
-                    ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].firstPinNumber
-                };
-                currentComponent.data.bjtPnpData.collectorEmitterPins = {
-                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber
-                };
-                currentComponent.data.bjtPnpData.collectorBasePins = {
-                    ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].firstPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].thirdPinNumber
-                };
+                currentComponent.data.bjtPnpData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
                 return;
             }
         }
@@ -862,108 +923,30 @@ void UserInterface::init(int* argc, char *** argv) {
         while (programAlive) {
             if (determenRequested) {
                 determineType();
-                // main thread
-                g_idle_add(G_SOURCE_FUNC(+[]() {
-                    gtk_label_set_text(mainWindow.topPanel.component.componentName, ComponentLayout::possibleComponentNames[currentComponent.type]);
-                    char buffer[15];
-                    switch (currentComponent.type) {
-                        case RESISTOR: {
-                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/resistor.png");
-                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 0.0);
-                            sprintf(buffer, "Pin %d", currentComponent.data.resistorData.connectedPins.firstPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
-                            sprintf(buffer, "Pin %d", currentComponent.data.resistorData.connectedPins.secondPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
-                            break;
-                        }
-                        case CAPACITOR: {
-                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/capacitor.png");
-                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 0.0);
-                            sprintf(buffer, "Pin %d", currentComponent.data.capacitorData.connectedPins.firstPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
-                            sprintf(buffer, "Pin %d", currentComponent.data.capacitorData.connectedPins.secondPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
-                            break;
-                        }
-                        case DIODE: {
-                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/diode.png");
-                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 0.0);
-                            sprintf(buffer, "Pin %d", currentComponent.data.diodeData.connectedPins.firstPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
-                            sprintf(buffer, "Pin %d", currentComponent.data.diodeData.connectedPins.secondPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
-                            break;
-                        }
-                        case BJT_NPN: {
-                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/bjt_npn.png");
-                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
-                            sprintf(buffer, "Pin %d: collector", currentComponent.data.bjtNpnData.collectorBasePins.firstPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
-                            sprintf(buffer, "Pin %d: basis", currentComponent.data.bjtNpnData.collectorBasePins.secondPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[1], buffer);
-                            sprintf(buffer, "Pin %d: emitter", currentComponent.data.bjtNpnData.collectorBasePins.thirdPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
-                            break;
-                        }
-                        case BJT_PNP: {
-                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/bjt_pnp.png");
-                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
-                            sprintf(buffer, "Pin %d: collector", currentComponent.data.bjtPnpData.collectorBasePins.firstPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], buffer);
-                            sprintf(buffer, "Pin %d: basis", currentComponent.data.bjtPnpData.collectorBasePins.secondPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[1], buffer);
-                            sprintf(buffer, "Pin %d: emitter", currentComponent.data.bjtPnpData.collectorBasePins.thirdPinNumber);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], buffer);
-                            break;
-                        }
-                        case MOSFET_NMOS: {
-                            // FIXME
-                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/unknown.png");
-                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
-                            break;
-                        }
-                        case MOSFET_PMOS: {
-                            // FIXME
-                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/unknown.png");
-                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
-                            break;
-                        }
-                        case MOSFET_JFET: {
-                            // FIXME
-                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/unknown.png");
-                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
-                            break;
-                        }
-                        case UNKNOWN_DEVICE:
-                        default: {
-                            gtk_image_set_from_file(mainWindow.topPanel.component.symbol, "../ui/unknown.png");
-                            gtk_widget_set_opacity((GtkWidget*) mainWindow.topPanel.component.pinout[1], 1.0);
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[0], "Pin 1: n.v.t.");
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[1], "Pin 2: n.v.t.");
-                            gtk_label_set_text(mainWindow.topPanel.component.pinout[2], "Pin 3: n.v.t.");
-                            break;
-                        }
-                    }
-                    return FALSE;
-                }), NULL);
+                mainWindow.topPanel.component.update();
                 determenRequested = false;
             }
             if (measurementRequested) {
                 switch (currentComponent.type) {
                     case RESISTOR: {
                         currentComponent.data.resistorData.measure();
+                        mainWindow.topPanel.component.update();
                         break;
                     }
                     case CAPACITOR: {
                         currentComponent.data.capacitorData.measure();
+                        mainWindow.topPanel.component.update();
                         break;
                     }
                     case DIODE: {
                         currentComponent.data.diodeData.measure();
+                        mainWindow.topPanel.component.update();
                         break;
                     }
                     case BJT_NPN: {
                         currentComponent.data.bjtNpnData.measure();
+                        mainWindow.bottomPanel.graphWindow.updateGraph();
+                        mainWindow.topPanel.component.update();
                         break;
                     }
                     case BJT_PNP: {
@@ -990,7 +973,6 @@ void UserInterface::init(int* argc, char *** argv) {
                         break;
                     }
                 }
-                mainWindow.bottomPanel.graphWindow.updateGraph();
                 measurementRequested = false;
             }
             sleep_ms(100);
@@ -1007,6 +989,9 @@ void UserInterface::init(int* argc, char *** argv) {
     gtk_widget_set_opacity((GtkWidget*) mainWindow.bottomPanel.graphWindow.unit3, 0.0);
     // make graph invisible
     mainWindow.bottomPanel.graphWindow.makeCompletelyInvisible();
+    mainWindow.topPanel.properties.setInvisible();
+    currentComponent.type = UNKNOWN_DEVICE;
+    mainWindow.topPanel.component.update();
     // start gtk functionality
     gtk_main();
 }

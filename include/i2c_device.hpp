@@ -7,7 +7,7 @@ typedef unsigned short UVoltage; // is always between 0 and 65535, max voltage i
                                  // because of the limitation, only the lower 12 bits are used
 typedef short Voltage;           // signed voltage, mostly used during calculations with the INA
 
-typedef float Current;           // can be positive or negative, so this is signed
+typedef float Current;           // is a floating point number, as this is the result of a division
 
 class I2C_Device;
 

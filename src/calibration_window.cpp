@@ -579,7 +579,7 @@ namespace CalibrationWindow {
                 move(probeFields[i].inaVoltage.start.y, probeFields[i].inaVoltage.start.x);
                 printw("INA: %*d mV", probeFields[i].inaVoltage.length - 8, Probe::probe[i].readVoltage());
                 move(probeFields[i].inaCurrent.start.y, probeFields[i].inaCurrent.start.x);
-                printw("%*d uA", probeFields[i].inaCurrent.length - 3, Probe::probe[i].readCurrent());
+                printw("%*f uA", probeFields[i].inaCurrent.length - 3, Probe::probe[i].readCurrent());
                 refresh();
             }
         }
