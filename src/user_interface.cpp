@@ -784,14 +784,14 @@ void determineType() {
         ProbeCombination::possibleCombinations[i].first->setVoltage(500);
         // wait for a short time
         sleep_ms(10);
-        // check if it is a BJT using the measurements
-        MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
-        MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
-        MeasureResult results3 = ProbeCombination::possibleCombinations[i].third->doFullMeasure(10);
+        // check if it is a BJT using current measurements
+        Current baseCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
+        Current emitterCurrent = ProbeCombination::possibleCombinations[i].third->readAverageCurrent(10);
+        Current collectorCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
         // check if collector + base and emitter current is similar
-        if (ALMOSTEQUAL(ABS(results1.avgA) + ABS(results2.avgA), results3.avgA, .05)) {
+        if (ALMOSTEQUAL(ABS(baseCurrent) + ABS(collectorCurrent), emitterCurrent, .05)) {
             // check current direction and their relative size, so a collector & base can be correctly detected
-            if (results2.avgA < -5 && results1.avgA < -50 && results3.avgA > 50 && results1.avgA < results2.avgA) {
+            if (baseCurrent < -5 && collectorCurrent < -50 && emitterCurrent > 50 && collectorCurrent < baseCurrent) {
                 currentComponent.type = ComponentType::BJT_NPN;
                 currentComponent.data.bjtNpnData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
                 return;
@@ -809,14 +809,14 @@ void determineType() {
         ProbeCombination::possibleCombinations[i].first->setVoltage(500);
         // wait for a short time
         sleep_ms(10);
-        // check if it is a BJT using the measurements
-        MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
-        MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
-        MeasureResult results3 = ProbeCombination::possibleCombinations[i].third->doFullMeasure(10);
+        // check if it is a BJT using current measurements
+        Current baseCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
+        Current emitterCurrent = ProbeCombination::possibleCombinations[i].third->readAverageCurrent(10);
+        Current collectorCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
         // check if collector and emitter current is similar
-        if (ALMOSTEQUAL(ABS(results1.avgA) + ABS(results2.avgA), results3.avgA, .05)) {
+        if (ALMOSTEQUAL(ABS(baseCurrent) + ABS(collectorCurrent), emitterCurrent, .05)) {
             // check current direction
-            if (results2.avgA > 5 && results1.avgA > 50 && results3.avgA < -50 && results1.avgA > results1.avgA) {
+            if (baseCurrent > 5 && collectorCurrent > 50 && emitterCurrent < -50 && collectorCurrent > baseCurrent) {
                 currentComponent.type = ComponentType::BJT_PNP;
                 currentComponent.data.bjtPnpData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
                 return;
