@@ -883,8 +883,8 @@ void determineType() {
             }
         }
     }
-        // check if DUT is a diode
-    for (unsigned char i = 0; i < 3; ++i) {
+    // check if DUT is a diode
+    for (unsigned char i = 0; i < 6; ++i) {
         // turn off the third probe
         ProbeCombination::possibleCombinations[i].third->turnOff();
         // set the second probe as GND
@@ -908,7 +908,7 @@ void determineType() {
                     sleep_ms(10);
                     anodeCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
                     cathodeCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
-                    if (anodeCurrent > -10 && cathodeCurrent < 10) {
+                    if (anodeCurrent > -2 && cathodeCurrent < 2) {
                         // set component
                         currentComponent.type = ComponentType::DIODE;
                         currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
@@ -946,7 +946,7 @@ void determineType() {
     }
     // check if DUT is a capacitor
     //TODO
-    
+
     //TODO MOSFET_NMOS, MOSFET_PMOS, MOSFET_JFET
     currentComponent.type = ComponentType::UNKNOWN_DEVICE;
 }
