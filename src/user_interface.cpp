@@ -867,7 +867,7 @@ void determineType() {
                 double firstBeta = collectorCurrent / baseCurrent;
                 // so now we reverse "third" and "first": first pin is considered to be the emitter, third is considered to be the collector
                 // set emitter as GND, so that VBE = 0.7V
-                ProbeCombination::possibleCombinations[i].first->setVoltage(0);
+                ProbeCombination::possibleCombinations[i].first->setVoltage(1000);
                 // set collector as 500mV, so the transistor can conduct
                 ProbeCombination::possibleCombinations[i].third->setVoltage(500);
                 // wait for a short time
