@@ -749,69 +749,6 @@ extern "C" {
 }
 
 void determineType() {
-    // check if DUT is a diode
-    for (unsigned char i = 0; i < 3; ++i) {
-        // turn off the third probe
-        ProbeCombination::possibleCombinations[i].third->turnOff();
-        // set the second probe as GND
-        ProbeCombination::possibleCombinations[i].second->setVoltage(0);
-        // set the first probe as different voltage sources (Schottky - 200mV, Germanium - 250-300mV, Silicon - 600-700mV)
-        UVoltage VCC;
-        for (unsigned char j = 0; j < 3; ++j) {
-            for (unsigned char k = 0; k < 3; ++k) {
-                VCC = DiodeType::possibleTypes[j].voltages[k];
-                ProbeCombination::possibleCombinations[i].first->setVoltage(VCC);
-                // wait for a short time
-                sleep_ms(10);
-                // check if a valid voltage drop occured, with a 10% margin of error, and current flows
-                Current anodeCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
-                Current cathodeCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
-                UVoltage voltageDrop = ProbeCombination::possibleCombinations[i].first->readAverageVoltage(10) - ProbeCombination::possibleCombinations[i].second->readAverageVoltage(10);
-                if (ALMOSTEQUAL(anodeCurrent, cathodeCurrent, 0.05) && anodeCurrent < - 50 && cathodeCurrent > 50) {
-                    // check if no current flows in reverse bias
-                    ProbeCombination::possibleCombinations[i].second->setVoltage(VCC);
-                    ProbeCombination::possibleCombinations[i].first->setVoltage(0);
-                    sleep_ms(10);
-                    anodeCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
-                    cathodeCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
-                    if (anodeCurrent > -10 && cathodeCurrent < 10) {
-                        // set component
-                        currentComponent.type = ComponentType::DIODE;
-                        currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
-                        currentComponent.data.diodeData.type = DiodeType::possibleTypes[j];
-                        currentComponent.data.diodeData.voltageDrop = voltageDrop;
-                        // turn probes off
-                        ProbeCombination::possibleCombinations[i].first->turnOff();
-                        ProbeCombination::possibleCombinations[i].second->turnOff();
-                        ProbeCombination::possibleCombinations[i].third->turnOff();
-                        return;
-                    }
-                }
-            }
-        }
-    }
-    // check if DUT is a resistor
-    for (unsigned char i = 0; i < 3; ++i) {
-        // turn off the third probe
-        ProbeCombination::possibleCombinations[i].third->turnOff();
-        // set the second probe as GND
-        ProbeCombination::possibleCombinations[i].second->setVoltage(0);
-        // set the first probe as VCC (500 mV)
-        ProbeCombination::possibleCombinations[i].first->setVoltage(500);
-        // wait for a short time
-        sleep_ms(10);
-        // check if a current can be measured in first & second probe
-        MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
-        MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
-        // check if current is big enough (max ~20K resistor), with a 1% margin of error
-        if (((results1.avgA < -25 && results2.avgA > 25) || (results1.avgA > 25 && results2.avgA < -25)) && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
-            currentComponent.type = ComponentType::RESISTOR;
-            currentComponent.data.resistorData.connectedPins = ProbeCombination::possibleCombinations[i];
-            return;
-        }
-    }
-    // check if DUT is a capacitor
-    //TODO
     // check if DUT is a BJT NPN transistor
     for (unsigned char i = 0; i < 6; ++i) {
         // first pin is considered to be the collector, second as base and third as emitter
@@ -946,6 +883,70 @@ void determineType() {
             }
         }
     }
+        // check if DUT is a diode
+    for (unsigned char i = 0; i < 3; ++i) {
+        // turn off the third probe
+        ProbeCombination::possibleCombinations[i].third->turnOff();
+        // set the second probe as GND
+        ProbeCombination::possibleCombinations[i].second->setVoltage(0);
+        // set the first probe as different voltage sources (Schottky - 200mV, Germanium - 250-300mV, Silicon - 600-700mV)
+        UVoltage VCC;
+        for (unsigned char j = 0; j < 3; ++j) {
+            for (unsigned char k = 0; k < 3; ++k) {
+                VCC = DiodeType::possibleTypes[j].voltages[k];
+                ProbeCombination::possibleCombinations[i].first->setVoltage(VCC);
+                // wait for a short time
+                sleep_ms(10);
+                // check if a valid voltage drop occured, with a 10% margin of error, and current flows
+                Current anodeCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
+                Current cathodeCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
+                UVoltage voltageDrop = ProbeCombination::possibleCombinations[i].first->readAverageVoltage(10) - ProbeCombination::possibleCombinations[i].second->readAverageVoltage(10);
+                if (ALMOSTEQUAL(anodeCurrent, cathodeCurrent, 0.05) && anodeCurrent < - 15 && cathodeCurrent > 15) {
+                    // check if no current flows in reverse bias
+                    ProbeCombination::possibleCombinations[i].second->setVoltage(VCC);
+                    ProbeCombination::possibleCombinations[i].first->setVoltage(0);
+                    sleep_ms(10);
+                    anodeCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
+                    cathodeCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
+                    if (anodeCurrent > -10 && cathodeCurrent < 10) {
+                        // set component
+                        currentComponent.type = ComponentType::DIODE;
+                        currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
+                        currentComponent.data.diodeData.type = DiodeType::possibleTypes[j];
+                        currentComponent.data.diodeData.voltageDrop = voltageDrop;
+                        // turn probes off
+                        ProbeCombination::possibleCombinations[i].first->turnOff();
+                        ProbeCombination::possibleCombinations[i].second->turnOff();
+                        ProbeCombination::possibleCombinations[i].third->turnOff();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    // check if DUT is a resistor
+    for (unsigned char i = 0; i < 3; ++i) {
+        // turn off the third probe
+        ProbeCombination::possibleCombinations[i].third->turnOff();
+        // set the second probe as GND
+        ProbeCombination::possibleCombinations[i].second->setVoltage(0);
+        // set the first probe as VCC (500 mV)
+        ProbeCombination::possibleCombinations[i].first->setVoltage(500);
+        // wait for a short time
+        sleep_ms(10);
+        // check if a current can be measured in first & second probe
+        MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
+        MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
+        // check if current is big enough (max ~20K resistor), with a 1% margin of error
+        if (((results1.avgA < -25 && results2.avgA > 25) || (results1.avgA > 25 && results2.avgA < -25)) && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
+            currentComponent.type = ComponentType::RESISTOR;
+            currentComponent.data.resistorData.connectedPins = ProbeCombination::possibleCombinations[i];
+            return;
+        }
+    }
+    // check if DUT is a capacitor
+    //TODO
+    
     //TODO MOSFET_NMOS, MOSFET_PMOS, MOSFET_JFET
     currentComponent.type = ComponentType::UNKNOWN_DEVICE;
 }
