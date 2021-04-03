@@ -793,8 +793,50 @@ void determineType() {
             // check current direction and their relative size, so a collector & base can be correctly detected
             if (baseCurrent < -5 && collectorCurrent < -50 && emitterCurrent > 50 && collectorCurrent < baseCurrent) {
                 currentComponent.type = ComponentType::BJT_NPN;
-                currentComponent.data.bjtNpnData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
-                return;
+                // now we need to check the orientation: some NPN transistors will conduct in both directions (Collector -> Emitter and vice versa)
+                // to make sure we have the right collector & emitter pins identified, we need to reverse the voltage on both of the pins
+                // and check the beta then
+                // the combination that makes for the biggest beta value identifies the right orientation
+                double firstBeta = collectorCurrent / baseCurrent;
+                // so now we reverse "third" and "first": first pin is considered to be the emitter, third is considered to be the collector
+                // set emitter as GND, so that VBE = 0.7V
+                ProbeCombination::possibleCombinations[i].first->setVoltage(0);
+                // set collector as 500mV, so the transistor can conduct
+                ProbeCombination::possibleCombinations[i].third->setVoltage(500);
+                // wait for a short time
+                sleep_ms(10);
+                // check if transistor is actually conducting
+                Current secondBaseCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
+                if (secondBaseCurrent < -5) {
+                    // use the new currents to calculate the other beta
+                    double secondBeta = ProbeCombination::possibleCombinations[i].third->readAverageCurrent(10) / secondBaseCurrent;
+                    if (ABS(firstBeta) > ABS(secondBeta)) {
+                        // the original orientation resulted in a bigger beta, so it was right the first time
+                        currentComponent.data.bjtNpnData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
+                        // turn off the probes
+                        ProbeCombination::possibleCombinations[i].first->turnOff();
+                        ProbeCombination::possibleCombinations[i].second->turnOff();
+                        ProbeCombination::possibleCombinations[i].third->turnOff();
+                        return;
+                    } else {
+                        // the new orientation resulted in a bigger beta, so collector & emitter have to be swapped
+                        currentComponent.data.bjtNpnData.collectorBaseEmitterPins = 
+                        { ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].firstPinNumber };
+                        // turn off the probes
+                        ProbeCombination::possibleCombinations[i].first->turnOff();
+                        ProbeCombination::possibleCombinations[i].second->turnOff();
+                        ProbeCombination::possibleCombinations[i].third->turnOff();
+                        return;
+                    }
+                } else {
+                    // the original orientation was the only one actually conducting, so this is the right orientation
+                    currentComponent.data.bjtNpnData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
+                    // turn off the probes
+                    ProbeCombination::possibleCombinations[i].first->turnOff();
+                    ProbeCombination::possibleCombinations[i].second->turnOff();
+                    ProbeCombination::possibleCombinations[i].third->turnOff();
+                    return;
+                }
             }
         }
     }
@@ -818,8 +860,50 @@ void determineType() {
             // check current direction
             if (baseCurrent > 5 && collectorCurrent > 50 && emitterCurrent < -50 && collectorCurrent > baseCurrent) {
                 currentComponent.type = ComponentType::BJT_PNP;
-                currentComponent.data.bjtPnpData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
-                return;
+                // now we need to check the orientation: some NPN transistors will conduct in both directions (Collector -> Emitter and vice versa)
+                // to make sure we have the right collector & emitter pins identified, we need to reverse the voltage on both of the pins
+                // and check the beta then
+                // the combination that makes for the biggest beta value identifies the right orientation
+                double firstBeta = collectorCurrent / baseCurrent;
+                // so now we reverse "third" and "first": first pin is considered to be the emitter, third is considered to be the collector
+                // set emitter as GND, so that VBE = 0.7V
+                ProbeCombination::possibleCombinations[i].first->setVoltage(0);
+                // set collector as 500mV, so the transistor can conduct
+                ProbeCombination::possibleCombinations[i].third->setVoltage(500);
+                // wait for a short time
+                sleep_ms(10);
+                // check if transistor is actually conducting
+                Current secondBaseCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
+                if (secondBaseCurrent < -5) {
+                    // use the new currents to calculate the other beta
+                    double secondBeta = ProbeCombination::possibleCombinations[i].third->readAverageCurrent(10) / secondBaseCurrent;
+                    if (ABS(firstBeta) > ABS(secondBeta)) {
+                        // the original orientation resulted in a bigger beta, so it was right the first time
+                        currentComponent.data.bjtPnpData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
+                        // turn off the probes
+                        ProbeCombination::possibleCombinations[i].first->turnOff();
+                        ProbeCombination::possibleCombinations[i].second->turnOff();
+                        ProbeCombination::possibleCombinations[i].third->turnOff();
+                        return;
+                    } else {
+                        // the new orientation resulted in a bigger beta, so collector & emitter have to be swapped
+                        currentComponent.data.bjtPnpData.collectorBaseEmitterPins = 
+                        { ProbeCombination::possibleCombinations[i].third, ProbeCombination::possibleCombinations[i].second, ProbeCombination::possibleCombinations[i].first, ProbeCombination::possibleCombinations[i].thirdPinNumber, ProbeCombination::possibleCombinations[i].secondPinNumber, ProbeCombination::possibleCombinations[i].firstPinNumber };
+                        // turn off the probes
+                        ProbeCombination::possibleCombinations[i].first->turnOff();
+                        ProbeCombination::possibleCombinations[i].second->turnOff();
+                        ProbeCombination::possibleCombinations[i].third->turnOff();
+                        return;
+                    }
+                } else {
+                    // the original orientation was the only one actually conducting, so this is the right orientation
+                    currentComponent.data.bjtPnpData.collectorBaseEmitterPins = ProbeCombination::possibleCombinations[i];
+                    // turn off the probes
+                    ProbeCombination::possibleCombinations[i].first->turnOff();
+                    ProbeCombination::possibleCombinations[i].second->turnOff();
+                    ProbeCombination::possibleCombinations[i].third->turnOff();
+                    return;
+                }
             }
         }
     }
