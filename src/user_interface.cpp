@@ -132,23 +132,21 @@ struct CapacitorData {
     }
 };
 
+struct DiodeType {
+    const char* typeName;
+    // min voltage, average voltage, max voltage for the type
+    UVoltage voltages[3];
+    static DiodeType possibleTypes[];
+};
+
+DiodeType DiodeType::possibleTypes[] = {
+    { "Schottky diode", { 200, 205, 210 } }, { "Germanium diode", { 250, 300, 310 } }, { "Silicium diode", { 600, 700, 710 } }
+};
+
 struct DiodeData {
     UVoltage voltageDrop;
+    DiodeType type;
     ProbeCombination connectedPins;
-    void measure() {
-        connectedPins.third->turnOff();
-        connectedPins.second->setVoltage(0);
-        connectedPins.first->setVoltage(650);
-        Current result = connectedPins.second->readAverageCurrent(10);
-        voltageDrop = connectedPins.first->currentVoltageSet;
-        while (result < 5 && voltageDrop < 800) {
-            connectedPins.first->increaseVoltage();
-            result = connectedPins.first->readAverageCurrent(10);
-        }
-        voltageDrop = connectedPins.first->readAverageVoltage(10) - connectedPins.second->readAverageVoltage(10);
-        connectedPins.first->turnOff();
-        connectedPins.second->turnOff();
-    }
 };
 
 struct BjtNpnData {
@@ -181,8 +179,8 @@ struct BjtNpnData {
     void measure() {
         // eerst wordt VBE zo klein mogelijk gezet:
         init();
-        // beta kan bepaald worden via een gemiddelde van een eerste 5 meetpunten (er wordt veronderstelt dat er nog geen teken van saturatie is dan)
-        collectorBaseEmitterPins.second->increaseVoltage();
+        // beta kan bepaald worden via een gemiddelde van een eerste 5 meetpunten (er wordt veronderstelt dat er nog geen teken van saturatie is dan), na een kleine toename in spanning (zodat de transistor zeker ook meetbaar geleid)
+        collectorBaseEmitterPins.second->setVoltage(collectorBaseEmitterPins.second->currentVoltageSet + 25);
         averageBeta = ((double) collectorBaseEmitterPins.first->readAverageCurrent(10)) / collectorBaseEmitterPins.second->readAverageCurrent(10);
         minBeta = averageBeta;        
         maxBeta = averageBeta;        
@@ -751,6 +749,47 @@ extern "C" {
 }
 
 void determineType() {
+    // check if DUT is a diode
+    for (unsigned char i = 0; i < 3; ++i) {
+        // turn off the third probe
+        ProbeCombination::possibleCombinations[i].third->turnOff();
+        // set the second probe as GND
+        ProbeCombination::possibleCombinations[i].second->setVoltage(0);
+        // set the first probe as different voltage sources (Schottky - 200mV, Germanium - 250-300mV, Silicon - 600-700mV)
+        UVoltage VCC;
+        for (unsigned char j = 0; j < 3; ++j) {
+            for (unsigned char k = 0; k < 3; ++k) {
+                VCC = DiodeType::possibleTypes[j].voltages[k];
+                ProbeCombination::possibleCombinations[i].first->setVoltage(VCC);
+                // wait for a short time
+                sleep_ms(10);
+                // check if a valid voltage drop occured, with a 10% margin of error, and current flows
+                Current anodeCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
+                Current cathodeCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
+                UVoltage voltageDrop = ProbeCombination::possibleCombinations[i].first->readAverageVoltage(10) - ProbeCombination::possibleCombinations[i].second->readAverageVoltage(10);
+                if (ALMOSTEQUAL(anodeCurrent, cathodeCurrent, 0.05) && anodeCurrent < - 50 && cathodeCurrent > 50) {
+                    // check if no current flows in reverse bias
+                    ProbeCombination::possibleCombinations[i].second->setVoltage(VCC);
+                    ProbeCombination::possibleCombinations[i].first->setVoltage(0);
+                    sleep_ms(10);
+                    anodeCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
+                    cathodeCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
+                    if (anodeCurrent > -10 && cathodeCurrent < 10) {
+                        // set component
+                        currentComponent.type = ComponentType::DIODE;
+                        currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
+                        currentComponent.data.diodeData.type = DiodeType::possibleTypes[j];
+                        currentComponent.data.diodeData.voltageDrop = voltageDrop;
+                        // turn probes off
+                        ProbeCombination::possibleCombinations[i].first->turnOff();
+                        ProbeCombination::possibleCombinations[i].second->turnOff();
+                        ProbeCombination::possibleCombinations[i].third->turnOff();
+                        return;
+                    }
+                }
+            }
+        }
+    }
     // check if DUT is a resistor
     for (unsigned char i = 0; i < 3; ++i) {
         // turn off the third probe
@@ -907,33 +946,6 @@ void determineType() {
             }
         }
     }
-    // check if DUT is a diode
-    for (unsigned char i = 0; i < 3; ++i) {
-        // turn off the third probe
-        ProbeCombination::possibleCombinations[i].third->turnOff();
-        // set the second probe as GND
-        ProbeCombination::possibleCombinations[i].second->setVoltage(0);
-        // set the first probe as VCC (750 mV)
-        ProbeCombination::possibleCombinations[i].first->setVoltage(750);
-        // wait for a short time
-        sleep_ms(10);
-        // check if a valid voltage drop occured, with a 10% margin of error, and current flows
-        MeasureResult results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
-        MeasureResult results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
-        if (ALMOSTEQUAL(results1.avgV - results2.avgV, 700, 0.1) && results1.avgA < 100 && results2.avgA > 100) {
-            // check if no current flows in reverse bias
-            ProbeCombination::possibleCombinations[i].second->setVoltage(750);
-            ProbeCombination::possibleCombinations[i].first->setVoltage(0);
-            sleep_ms(10);
-            results1 = ProbeCombination::possibleCombinations[i].first->doFullMeasure(10);
-            results2 = ProbeCombination::possibleCombinations[i].second->doFullMeasure(10);
-            if (ABS(results1.avgA) < 100 && ABS(results2.avgA) < 100) {
-                currentComponent.type = ComponentType::DIODE;
-                currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
-                return;
-            }
-        }
-    }
     //TODO MOSFET_NMOS, MOSFET_PMOS, MOSFET_JFET
     currentComponent.type = ComponentType::UNKNOWN_DEVICE;
 }
@@ -1039,7 +1051,6 @@ void UserInterface::init(int* argc, char *** argv) {
                         break;
                     }
                     case DIODE: {
-                        currentComponent.data.diodeData.measure();
                         mainWindow.topPanel.component.update();
                         break;
                     }
