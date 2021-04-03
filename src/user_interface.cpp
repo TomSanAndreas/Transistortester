@@ -908,7 +908,7 @@ void determineType() {
                     sleep_ms(10);
                     anodeCurrent = ProbeCombination::possibleCombinations[i].first->readAverageCurrent(10);
                     cathodeCurrent = ProbeCombination::possibleCombinations[i].second->readAverageCurrent(10);
-                    if (anodeCurrent > -2 && cathodeCurrent < 2) {
+                    if (ABS(anodeCurrent) < 2 && ABS(cathodeCurrent) < 2) {
                         // set component
                         currentComponent.type = ComponentType::DIODE;
                         currentComponent.data.diodeData.connectedPins = ProbeCombination::possibleCombinations[i];
@@ -917,7 +917,6 @@ void determineType() {
                         // turn probes off
                         ProbeCombination::possibleCombinations[i].first->turnOff();
                         ProbeCombination::possibleCombinations[i].second->turnOff();
-                        ProbeCombination::possibleCombinations[i].third->turnOff();
                         return;
                     }
                 }
@@ -941,6 +940,9 @@ void determineType() {
         if (((results1.avgA < -25 && results2.avgA > 25) || (results1.avgA > 25 && results2.avgA < -25)) && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
             currentComponent.type = ComponentType::RESISTOR;
             currentComponent.data.resistorData.connectedPins = ProbeCombination::possibleCombinations[i];
+            // turn probes off
+            ProbeCombination::possibleCombinations[i].first->turnOff();
+            ProbeCombination::possibleCombinations[i].second->turnOff();
             return;
         }
     }
