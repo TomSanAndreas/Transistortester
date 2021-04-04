@@ -10,6 +10,8 @@ struct MeasureResult {
     MeasureResult() {}
 };
 
+struct ProbeCombination;
+
 class Probe {
     private:
         DAC dac;
@@ -26,6 +28,7 @@ class Probe {
         static void destroy();
 
         static Probe* probe;
+        static ProbeCombination* combinations;
 
         void calibrate(void (*progressIndicator)(), double* progress);
 
@@ -64,4 +67,10 @@ class Probe {
 
         // de huidige spanning van de DAC
         UVoltage currentVoltageSet;
+};
+
+struct ProbeCombination {
+    Probe* first,* second,* third;
+    unsigned int firstPinNumber, secondPinNumber, thirdPinNumber;
+    static ProbeCombination* possibleCombinations;
 };

@@ -1,12 +1,22 @@
 #include "probe.hpp"
 #include <stdio.h>
 Probe* Probe::probe = nullptr;
+ProbeCombination* Probe::combinations;
 
 void Probe::init() {
     probe = new Probe[3] { {DAC_Address::A0, INA_Address::INA1}, {DAC_Address::A2, INA_Address::INA2}, {DAC_Address::A1, INA_Address::INA3} };
+    combinations = new ProbeCombination[6] {
+        { &probe[0], &probe[1], &probe[2], 1, 2, 3 },
+        { &probe[1], &probe[2], &probe[0], 2, 3, 1 },
+        { &probe[0], &probe[2], &probe[1], 1, 3, 2 },
+        { &probe[1], &probe[0], &probe[2], 2, 1, 3 },
+        { &probe[2], &probe[1], &probe[0], 3, 2, 1 },
+        { &probe[2], &probe[0], &probe[1], 3, 1, 2 }
+    };
 }
 
 void Probe::destroy() {
+    delete[] combinations;
     delete[] probe;
 }
 
