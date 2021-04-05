@@ -100,7 +100,7 @@ void BjtPnp::measure() {
     minBeta = averageBeta;        
     maxBeta = averageBeta;        
     double currentBeta;
-    for (unsigned int i = 0; i < 5; ++i) {
+    for (unsigned int i = 0; i < 4; ++i) {
         pinout.second->decreaseVoltage();
         currentBeta = ((double) pinout.first->readAverageCurrent(10)) / pinout.second->readAverageCurrent(10);
         if (currentBeta > maxBeta) {

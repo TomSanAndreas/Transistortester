@@ -222,9 +222,9 @@ struct ComponentLayout {
             gtk_label_set_text(componentName, buffer);
             Component::currentComponent->getPropertyText(SYMBOL_NAME, buffer);
             gtk_image_set_from_file(symbol, buffer);
-            for (unsigned char i = PINOUT_1; i < PINOUT_3; ++i) {
+            for (unsigned char i = PINOUT_1; i <= PINOUT_3; ++i) {
                 Component::currentComponent->getPropertyText((PropertyType) i, buffer);
-                gtk_label_set_text(pinout[i], buffer);
+                gtk_label_set_text(pinout[i - PINOUT_1], buffer);
             }
             return FALSE;
         }), NULL);
