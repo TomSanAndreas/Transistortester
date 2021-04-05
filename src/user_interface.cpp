@@ -408,8 +408,7 @@ void UserInterface::init(int* argc, char *** argv) {
     XInitThreads();
     #endif
     gtk_init(argc, argv);
-    // builder = gtk_builder_new_from_file("../ui/landing_page.xml");
-    builder = gtk_builder_new_from_file(UI_SOURCE);
+    builder = gtk_builder_new_from_file("../ui/landing_page.xml");
     window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_builder_connect_signals(builder, NULL);
 

@@ -8,7 +8,6 @@
 #define ABS(a)	   (((a) < 0) ? -(a) : (a))
 // determine if both values are at least almost equal, only percentage% different max
 #define ALMOSTEQUAL(value1, value2, percentage) (ABS(ABS(value1) - ABS(value2)) < percentage * ABS(value1))
-#define UI_SOURCE "D:\\UGent 2020-2021\\Bachelorproef\\Github\\transistortester\\ui\\landing_page.xml"
 
 enum ComponentType {
     RESISTOR       = 0,
