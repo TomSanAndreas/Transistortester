@@ -389,6 +389,7 @@ void determineType() {
     if (dut.isSuggestedType) {
         Component::type = RESISTOR;
         Component::currentComponent = new Resistor(dut.orientation);
+        return;
     }
     // check if DUT is a capacitor
     //TODO
