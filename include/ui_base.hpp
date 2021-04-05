@@ -67,7 +67,7 @@ struct Component {
     virtual void getPropertyText(PropertyType property, char* buffer) = 0;
     virtual ~Component() {}
     protected:
-        ProbeCombination& pinout;
+        ProbeCombination pinout;
         Component(ProbeCombination& p) : pinout(p) {}
 };
 
