@@ -13,10 +13,10 @@ DUTInformation Resistor::checkIfResistor() {
         // wait for a short time
         sleep_ms(10);
         // check if a current can be measured in first & second probe
-        MeasureResult results1 = Probe::combinations[i].first->doFullMeasure(10);
-        MeasureResult results2 = Probe::combinations[i].second->doFullMeasure(10);
+        Current firstCurrent = Probe::combinations[i].first->readAverageCurrent(10);
+        Current secondCurrent = Probe::combinations[i].second->readAverageCurrent(10);
         // check if current is big enough (max ~20K resistor), with a 1% margin of error
-        if (((results1.avgA < -25 && results2.avgA > 25) || (results1.avgA > 25 && results2.avgA < -25)) && ALMOSTEQUAL(results2.avgA, results1.avgA, 0.01)) {
+        if (firstCurrent < -25 && secondCurrent > 25 && ALMOSTEQUAL(firstCurrent, secondCurrent, 0.01)) {
             result.isSuggestedType = true;
             result.orientation = Probe::combinations[i];
             // turn probes off

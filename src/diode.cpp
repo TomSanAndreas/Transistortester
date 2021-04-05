@@ -80,7 +80,7 @@ void Diode::getPropertyText(PropertyType property, char* buffer) {
             break;
         }
         case DESCRIPTION_LINE_3: {
-            sprintf(buffer, "Bereik spanningsval: %dmV - %dmV", type.voltages[0], type.voltages[3]);
+            sprintf(buffer, "Bereik spanningsval: %dmV - %dmV", type.voltages[0], type.voltages[2]);
             break;
         }
         case DESCRIPTION_LINE_4: {
