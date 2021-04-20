@@ -5,19 +5,24 @@ const unsigned int GraphContext::IC_VCE = 1;
 const unsigned int GraphContext::IC_VBE = 2;
 
 const GraphContext GraphContext::data[] = {
-    {"uA", "mA", "IC i.f.v. IB",  {"IC i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}},
-    {"mA", "mV", "VCE i.f.v. IC", {"IC i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}},
-    {"mA", "mV", "VBE i.f.v. IC", {"IC i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}}
+    {"uA", "mA", "mV", "IC en VCE i.f.v. IB",  {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}},
+    {"mA", "mV", "", "VCE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}},
+    {"mA", "mV", "", "VBE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}}
 };
 
 unsigned int Graph::graphType;
 
-int Graph::maxX;
-int Graph::maxY;
 int Graph::minX;
-int Graph::minY;
+int Graph::maxX;
 
-Graph Graph::graphs[3];
+int Graph::maxYCurrent;
+int Graph::minYCurrent;
+
+int Graph::maxYVoltage;
+int Graph::minYVoltage;
+
+Graph Graph::graphCurrent[3];
+Graph Graph::graphVoltage[3];
 
 ComponentType Component::type = UNKNOWN_DEVICE;
 Component* Component::currentComponent = nullptr;

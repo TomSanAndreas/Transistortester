@@ -65,14 +65,15 @@ struct GraphWindow {
             // zet alle y-labels zichtbaar
             for (unsigned int i = 0; i < 9; ++i) {
                 gtk_widget_set_opacity((GtkWidget*) yLabelsLeft[i], 1.0);
-                // gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 1.0);
+                gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 1.0);
             }
             // zet de eenheden op het einde van de X- en Y-as zichtbaar
             gtk_widget_set_opacity((GtkWidget*) unit1, 1.0);
             gtk_widget_set_opacity((GtkWidget*) unit2, 1.0);
             // stel de eenheden op het einde van de X- en Y-as in
             gtk_label_set_text(unit1, GraphContext::data[Graph::graphType].xUnit);
-            gtk_label_set_text(unit2, GraphContext::data[Graph::graphType].yUnit);
+            gtk_label_set_text(unit2, GraphContext::data[Graph::graphType].yUnit1);
+            gtk_label_set_text(unit3, GraphContext::data[Graph::graphType].yUnit2);
             // zet de titel zichtbaar
             gtk_widget_set_opacity((GtkWidget*) graphTitle, 1.0);
             // stel de titel in
@@ -88,8 +89,10 @@ struct GraphWindow {
                 gtk_label_set_text(xLabels[i], buffer);
             }
             for (unsigned char i = 0; i < 9; ++i) {
-                sprintf(buffer, "%8d", (i + 1) * (Graph::maxY - Graph::minY) / 9 + Graph::minY);
+                sprintf(buffer, "%8d", (i + 1) * (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent);
                 gtk_label_set_text(yLabelsLeft[i], buffer);
+                sprintf(buffer, "%8d", (i + 1) * (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage);
+                gtk_label_set_text(yLabelsRight[i], buffer);
             }
             return FALSE;
         }), NULL);
@@ -274,7 +277,8 @@ struct MainWindow {
     }
 } mainWindow;
 
-GdkRGBA colors[3] { {.35, .5, .4, 1}, {.6, .2, .45, 1}, {.6, .5, .45, 1} };
+GdkRGBA colorsC[3] { {.66, 1, .66, 1}, {.9, 1, .5, 1}, {.9, 1, .5, 1} };
+GdkRGBA colorsV[3] { {.66, .66, 1, 1}, {.5, .9, 1, 1}, {.5, .9, 1, 1} };
 CalibrationDialog calibrationDialog;
 
 unsigned int segment;
@@ -298,16 +302,17 @@ extern "C" {
     #endif
     gboolean draw_signal(GtkWidget* widget, cairo_t* cr, gpointer data) {
         // indien er geen data is opgeslagen, dan is data de nullptr en mag er direct gestopt worden met tekenen
-        if (Graph::graphs[0].data == nullptr) {
+        if (Graph::graphCurrent[0].data == nullptr) {
             return false;
         }
         // afmetingen grafiek in pixels bepalen
         unsigned int width = gtk_widget_get_allocated_width(widget);
         unsigned int height = gtk_widget_get_allocated_height(widget);
         // schalen berekenen
-        double scaleX, scaleY;
+        double scaleX, scaleY1, scaleY2;
         scaleX = ((double) width) / (Graph::maxX - Graph::minX);
-        scaleY = ((double) height) / (Graph::maxY - Graph::minY);
+        scaleY1 = ((double) height) / (Graph::maxYCurrent - Graph::minYCurrent);
+        scaleY2 = ((double) height) / (Graph::maxYVoltage - Graph::minYVoltage);
         // raster tekenen: 21 verticale lijnen en 9 horizontale lijnen op gelijke afstand
         cairo_set_source_rgba(cr, 0, 0, 0, .1);
         unsigned int nPixelsVertical = height / 9;
@@ -325,11 +330,18 @@ extern "C" {
         // plotten grafieken
         for (unsigned char i = 0; i < 3; ++i) {
             for (unsigned int j = 0; j < 50; ++j) {
-                if (Graph::graphs[i].data[j].x == 0 && Graph::graphs[i].data[j].y == 0)
+                if (Graph::graphCurrent[i].data[j].x == 0 && Graph::graphCurrent[i].data[j].y == 0)
                     break;
-                cairo_line_to(cr, (Graph::graphs[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphs[i].data[j].y - Graph::minY) * scaleY);
+                cairo_line_to(cr, (Graph::graphCurrent[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphCurrent[i].data[j].y - Graph::minYCurrent) * scaleY1);
             }
-            gdk_cairo_set_source_rgba(cr, &colors[i]);
+            gdk_cairo_set_source_rgba(cr, &colorsC[i]);
+            cairo_stroke(cr);
+            for (unsigned int j = 0; j < 50; ++j) {
+                if (Graph::graphVoltage[i].data[j].x == 0 && Graph::graphVoltage[i].data[j].y == 0)
+                    break;
+                cairo_line_to(cr, (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphVoltage[i].data[j].y - Graph::minYVoltage) * scaleY2);
+            }
+            gdk_cairo_set_source_rgba(cr, &colorsV[i]);
             cairo_stroke(cr);
         }
         return false;

@@ -33,12 +33,13 @@ struct Point {
 struct Graph {
     Point* data = nullptr;
     static unsigned int graphType;
-    static int maxX, maxY, minX, minY;
-    static Graph graphs[];
+    static int maxX, minX, maxYCurrent, minYCurrent, maxYVoltage, minYVoltage;
+    static Graph graphCurrent[];
+    static Graph graphVoltage[];
 };
 
 struct GraphContext {
-    const char* xUnit,* yUnit;
+    const char* xUnit,* yUnit1,* yUnit2;
     const char* graphTitle;
     const char* buttonDiscription[3];
     static const GraphContext data[];
