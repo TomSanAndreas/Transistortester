@@ -56,7 +56,7 @@ void Diode::measure() {
             sleep_ms(10);
             // check if current flows
             Current anodeCurrent = pinout.first->readAverageCurrent(10);
-            if (anodeCurrent < -10) {
+            if (anodeCurrent < -1000) {
                 // set properties
                 voltageDrop = (((double) pinout.first->readAverageVoltage(10)) - pinout.second->readAverageVoltage(10)) / 1000;
                 type = DiodeType::possibleTypes[j];
