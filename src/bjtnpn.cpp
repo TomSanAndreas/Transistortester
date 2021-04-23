@@ -81,7 +81,7 @@ void BjtNpn::setLowestVBE() {
     Current collectorCurrent = pinout.first->readCurrent();
     // NPN heeft stroom in de basis, dus wordt deze als negatief gemeten
     // VBE verlagen door B te laten dalen, dit tot collectorCurrent klein genoeg is (in absolute waarde)
-    while (collectorCurrent < -1 && pinout.second->currentVoltageSet > 200) {
+    while (collectorCurrent < -10 && pinout.second->currentVoltageSet > 200) {
         pinout.second->decreaseVoltage();
         collectorCurrent = pinout.first->readAverageCurrent(25);
     }
@@ -96,21 +96,26 @@ void BjtNpn::measure() {
     minVbeVoltage = pinout.second->readAverageVoltage(10) / 1000.0;
     // beta kan bepaald worden via een gemiddelde van een eerste 5 meetpunten (er wordt veronderstelt dat er nog geen teken van saturatie is dan), na een kleine toename in spanning (zodat de transistor zeker ook meetbaar geleid)
     pinout.second->setVoltage(pinout.second->currentVoltageSet + 25);
-    averageBeta = ((double) pinout.first->readAverageCurrent(10)) / pinout.second->readAverageCurrent(10);
-    minBeta = averageBeta;        
-    maxBeta = averageBeta;        
+    sleep_ms(1);
+    minBeta = 1000;        
+    maxBeta = 0;        
     double currentBeta;
-    for (unsigned int i = 0; i < 4; ++i) {
+    unsigned int nMeasures = 50;
+    for (unsigned int i = 0; i < 50; ++i) {
         pinout.second->increaseVoltage();
-        currentBeta = ((double) pinout.first->readAverageCurrent(10)) / pinout.second->readAverageCurrent(10);
-        if (currentBeta > maxBeta) {
-            maxBeta = currentBeta;
-        } else if (currentBeta < minBeta) {
-            minBeta = currentBeta;
+        currentBeta = ((double) pinout.first->readAverageCurrent(10)) / ((double) pinout.second->readAverageCurrent(10));
+        if (currentBeta > 0) {
+            if (currentBeta > maxBeta) {
+                maxBeta = currentBeta;
+            } else if (currentBeta < minBeta) {
+                minBeta = currentBeta;
+            }
+            averageBeta += currentBeta;
+        } else {
+            --nMeasures;
         }
-        averageBeta += currentBeta;
     }
-    averageBeta /= 5;
+    averageBeta /= nMeasures;
     pinout.first->turnOff();
     pinout.second->turnOff();
     pinout.third->turnOff();
@@ -146,7 +151,7 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     Graph::maxX = Graph::graphCurrent[0].data[0].x;
 
     Graph::graphVoltage[0].data[0].x = - basisMeting.avgA;
-    Graph::graphVoltage[0].data[0].y = collectorMeting.avgA - emitterMeting.avgV;
+    Graph::graphVoltage[0].data[0].y = collectorMeting.avgV - emitterMeting.avgV;
     Graph::graphVoltage[1].data[0].x = - basisMeting.minA;
     Graph::graphVoltage[1].data[0].y = collectorMeting.minV - emitterMeting.maxV;
     Graph::graphVoltage[2].data[0].x = - basisMeting.maxA;
@@ -173,7 +178,7 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
         Graph::graphCurrent[2].data[i].y = - collectorMeting.maxA;
 
         Graph::graphVoltage[0].data[i].x = - basisMeting.avgA;
-        Graph::graphVoltage[0].data[i].y = collectorMeting.avgA - emitterMeting.avgV;
+        Graph::graphVoltage[0].data[i].y = collectorMeting.avgV - emitterMeting.avgV;
         Graph::graphVoltage[1].data[i].x = - basisMeting.minA;
         Graph::graphVoltage[1].data[i].y = collectorMeting.minV - emitterMeting.maxV;
         Graph::graphVoltage[2].data[i].x = - basisMeting.maxA;
