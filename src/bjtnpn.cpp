@@ -88,6 +88,7 @@ void BjtNpn::setLowestVBE() {
 }
 
 void BjtNpn::measure() {
+do_measure:
     // eerst wordt VBE zo klein mogelijk gezet:
     setLowestVBE();
     // korte delay
@@ -99,6 +100,7 @@ void BjtNpn::measure() {
     sleep_ms(1);
     minBeta = 1000;        
     maxBeta = 0;        
+    averageBeta = 0;
     double currentBeta;
     unsigned int nMeasures = 50;
     for (unsigned int i = 0; i < 50; ++i) {
@@ -116,6 +118,11 @@ void BjtNpn::measure() {
         }
     }
     averageBeta /= nMeasures;
+    // check if accurate enough, if not, measure again
+    if (!(0.5 * averageBeta < minBeta && 1.5 * averageBeta > maxBeta)) {
+        goto do_measure;
+    }
+
     pinout.first->turnOff();
     pinout.second->turnOff();
     pinout.third->turnOff();
