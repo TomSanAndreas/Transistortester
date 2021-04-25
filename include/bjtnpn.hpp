@@ -10,7 +10,7 @@ struct BjtNpn : Component {
     // gebruikt om te kijken of de DUT een NPN transistor is
     static DUTInformation checkIfNPN();
     // genereren grafieken
-    void generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint);
+    void generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint, bool sampleVoltage);
     // eigenschappen in tekst uitdrukken
     void getPropertyText(PropertyType property, char* buffer);
     // pinout: first - collector, second - base, third - emitter

@@ -10,6 +10,12 @@
 #include <X11/Xlib.h>
 #endif
 
+#define UPPER_SAMPLE_LIMIT 100
+#define LOWER_SAMPLE_LIMIT 1
+
+#define UPPER_POINT_LIMIT 200
+#define LOWER_POINT_LIMIT 25
+
 void destroy();
 void determineType();
 // flags used in the seperate thread
@@ -151,31 +157,46 @@ struct BottomPanel {
 GtkButton* BottomPanel::toggle1,* BottomPanel::toggle2,* BottomPanel::toggle3;
 
 struct MeasureProperties {
-    GtkLabel* description[3];
+    static GtkLabel* description[3];
     static const char* descriptionNames[];
-    GtkLabel* currentValue[3];
+    static GtkLabel* currentValue[2];
+    static unsigned int currentValueInt[2];
     static const char* currentValueNames[];
-    GtkButton* decrementValue[3];
+    static GtkButton* decrementValue[2];
     static const char* decrementValueNames[];
-    GtkButton* incrementValue[3];
+    static GtkButton* incrementValue[2];
     static const char* incrementValueNames[];
+    static GtkCheckButton* sampleVoltageButton;
+    static const char* sampleVoltageButtonLabel;
+    static bool shouldSampleVoltage;
 };
 
+GtkLabel* MeasureProperties::description[3];
+GtkLabel* MeasureProperties::currentValue[2];
+unsigned int MeasureProperties::currentValueInt[2];
+GtkButton* MeasureProperties::incrementValue[2];
+GtkButton* MeasureProperties::decrementValue[2];
+GtkCheckButton* MeasureProperties::sampleVoltageButton;
+
 const char* MeasureProperties::descriptionNames[] = {
-    "samples_label", "punten_label", "other_label"
+    "samples_label", "punten_label", "empty_label"
 };
 
 const char* MeasureProperties::currentValueNames[] = {
-    "samples_counter", "punten_counter", "other_counter"
+    "samples_counter", "punten_counter"
 };
 
 const char* MeasureProperties::decrementValueNames[] = {
-    "samples_decrement", "punten_decrement", "other_decrement"
+    "samples_decrement", "punten_decrement"
 };
 
 const char* MeasureProperties::incrementValueNames[] = {
-    "samples_increment", "punten_increment", "other_increment"
+    "samples_increment", "punten_increment"
 };
+
+bool MeasureProperties::shouldSampleVoltage = false;
+
+const char* MeasureProperties::sampleVoltageButtonLabel = "sample_voltage";
 
 struct ComponentProperties {
     static GtkLabel* property[4];
@@ -329,20 +350,22 @@ extern "C" {
         }
         // plotten grafieken
         for (unsigned char i = 0; i < 3; ++i) {
-            for (unsigned int j = 0; j < 50; ++j) {
+            for (unsigned int j = 0; j < MeasureProperties::currentValueInt[1]; ++j) {
                 if (Graph::graphCurrent[i].data[j].x == 0 && Graph::graphCurrent[i].data[j].y == 0)
                     break;
                 cairo_line_to(cr, (Graph::graphCurrent[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphCurrent[i].data[j].y - Graph::minYCurrent) * scaleY1);
             }
             gdk_cairo_set_source_rgba(cr, &colorsC[i]);
             cairo_stroke(cr);
-            for (unsigned int j = 0; j < 50; ++j) {
-                if (Graph::graphVoltage[i].data[j].x == 0 && Graph::graphVoltage[i].data[j].y == 0)
-                    break;
-                cairo_line_to(cr, (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphVoltage[i].data[j].y - Graph::minYVoltage) * scaleY2);
+            if (MeasureProperties::shouldSampleVoltage) {
+                for (unsigned int j = 0; j < 50; ++j) {
+                    if (Graph::graphVoltage[i].data[j].x == 0 && Graph::graphVoltage[i].data[j].y == 0)
+                        break;
+                    cairo_line_to(cr, (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphVoltage[i].data[j].y - Graph::minYVoltage) * scaleY2);
+                }
+                gdk_cairo_set_source_rgba(cr, &colorsV[i]);
+                cairo_stroke(cr);
             }
-            gdk_cairo_set_source_rgba(cr, &colorsV[i]);
-            cairo_stroke(cr);
         }
         return false;
     }
@@ -369,6 +392,60 @@ extern "C" {
     #endif
     void measure(GtkWidget* widget, gpointer user_data) {
         measurementRequested = true;
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void on_increment_samples(GtkWidget* widget, gpointer user_data) {
+        char buffer[25];
+        sprintf(buffer, "%d", (++MeasureProperties::currentValueInt[0]));
+        gtk_label_set_text(MeasureProperties::currentValue[0], buffer);
+        if (MeasureProperties::currentValueInt[0] == UPPER_SAMPLE_LIMIT) {
+            gtk_widget_set_sensitive(GTK_WIDGET(MeasureProperties::incrementValue[0]), FALSE);
+        }
+        gtk_widget_set_sensitive(GTK_WIDGET(MeasureProperties::decrementValue[0]), TRUE);
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void on_decrement_samples(GtkWidget* widget, gpointer user_data) {
+        char buffer[25];
+        sprintf(buffer, "%d", (--MeasureProperties::currentValueInt[0]));
+        gtk_label_set_text(MeasureProperties::currentValue[0], buffer);
+        if (MeasureProperties::currentValueInt[0] == LOWER_SAMPLE_LIMIT) {
+            gtk_widget_set_sensitive(GTK_WIDGET(MeasureProperties::decrementValue[0]), FALSE);
+        }
+        gtk_widget_set_sensitive(GTK_WIDGET(MeasureProperties::incrementValue[0]), TRUE);
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void on_increment_points(GtkWidget* widget, gpointer user_data) {
+        char buffer[25];
+        sprintf(buffer, "%d", (++MeasureProperties::currentValueInt[1]));
+        gtk_label_set_text(MeasureProperties::currentValue[1], buffer);
+        if (MeasureProperties::currentValueInt[1] == UPPER_POINT_LIMIT) {
+            gtk_widget_set_sensitive(GTK_WIDGET(MeasureProperties::incrementValue[1]), FALSE);
+        }
+        gtk_widget_set_sensitive(GTK_WIDGET(MeasureProperties::decrementValue[1]), TRUE);
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void on_decrement_points(GtkWidget* widget, gpointer user_data) {
+        char buffer[25];
+        sprintf(buffer, "%d", (--MeasureProperties::currentValueInt[1]));
+        gtk_label_set_text(MeasureProperties::currentValue[1], buffer);
+        if (MeasureProperties::currentValueInt[1] == LOWER_POINT_LIMIT) {
+            gtk_widget_set_sensitive(GTK_WIDGET(MeasureProperties::decrementValue[1]), FALSE);
+        }
+        gtk_widget_set_sensitive(GTK_WIDGET(MeasureProperties::incrementValue[1]), TRUE);
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void on_sample_voltage_toggle(GtkWidget* widget, gpointer user_data) {
+        MeasureProperties::shouldSampleVoltage = !MeasureProperties::shouldSampleVoltage;
     }
 }
 
@@ -428,12 +505,17 @@ void UserInterface::init(int* argc, char *** argv) {
     // set top panel pointers
     mainWindow.topPanel.startButton = GTK_BUTTON(gtk_builder_get_object(builder, "start_measuring"));
 
-    for (unsigned char i = 0; i < 3; ++i) {
+    for (unsigned char i = 0; i < 2; ++i) {
         mainWindow.topPanel.settings.description[i] = GTK_LABEL(gtk_builder_get_object(builder, MeasureProperties::descriptionNames[i]));
         mainWindow.topPanel.settings.currentValue[i] = GTK_LABEL(gtk_builder_get_object(builder, MeasureProperties::currentValueNames[i]));
         mainWindow.topPanel.settings.incrementValue[i] = GTK_BUTTON(gtk_builder_get_object(builder, MeasureProperties::incrementValueNames[i]));
         mainWindow.topPanel.settings.decrementValue[i] = GTK_BUTTON(gtk_builder_get_object(builder, MeasureProperties::decrementValueNames[i]));
     }
+
+    mainWindow.topPanel.settings.sampleVoltageButton = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, MeasureProperties::sampleVoltageButtonLabel));
+
+    mainWindow.topPanel.settings.currentValueInt[0] = 3;
+    mainWindow.topPanel.settings.currentValueInt[1] = 50;
 
     for (unsigned char i = 0; i < 4; ++i) {
         mainWindow.topPanel.properties.property[i] = GTK_LABEL(gtk_builder_get_object(builder, ComponentProperties::propertyNames[i]));
@@ -533,7 +615,7 @@ void UserInterface::init(int* argc, char *** argv) {
                 mainWindow.disableAllButtons();
                 switch (Component::type) {
                     case BJT_NPN: {
-                        ((BjtNpn*) Component::currentComponent)->generateIbIcGraph(50, 10);
+                        ((BjtNpn*) Component::currentComponent)->generateIbIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0], mainWindow.topPanel.settings.shouldSampleVoltage);
                         mainWindow.bottomPanel.graphWindow.updateGraph();
                         mainWindow.bottomPanel.updateButtons();
                         break;
@@ -584,6 +666,7 @@ void UserInterface::init(int* argc, char *** argv) {
     Component::type = UNKNOWN_DEVICE;
     Component::currentComponent = nullptr;
     mainWindow.topPanel.component.update();
+    mainWindow.topPanel.properties.update();
     // start gtk functionality
     gtk_main();
 }

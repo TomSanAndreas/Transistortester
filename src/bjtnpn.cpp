@@ -128,18 +128,41 @@ do_measure:
     pinout.third->turnOff();
 }
 
-void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint) {
+void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint, bool sampleVoltage) {
     // oorspronkelijke grafieken worden uit het geheugen gehaald en nieuw geheugen wordt gemaakt
     for (unsigned char i = 0; i < 3; ++i) {
         delete[] Graph::graphCurrent[i].data;
         delete[] Graph::graphVoltage[i].data;
         Graph::graphCurrent[i].data = new Point[nPoints];
-        Graph::graphVoltage[i].data = new Point[nPoints];
+        if (sampleVoltage) {
+            Graph::graphVoltage[i].data = new Point[nPoints];
+        } else {
+            Graph::graphVoltage[i].data = nullptr;
+        }
     }
     // VBE wordt zo klein mogelijk gezet
     setLowestVBE();
-    // vanaf hier kan de verhouding IB <-> IC gemeten worden, totdat de basisstroom te groot is, de
-    // collectorstroom te groot is, of het maximum aantal punten bereikt is voor een grafiek te vormen
+    UVoltage lowestBaseVoltage = pinout.second->currentVoltageSet;
+    // vanaf hier kan de verhouding IB <-> IC gemeten worden, totdat de basisstroom of collectorstroom te groot is
+    // om zo te weten met hoeveel de basisspanning moet toenemen voor elk punt
+
+    Current baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
+    Current collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
+
+    while (collectorCurrent > - 7000 && baseCurrent > - 5000 && pinout.first->currentVoltageSet > pinout.second->currentVoltageSet) {
+        if (collectorCurrent > - 3000 && baseCurrent > - 1000) {
+            pinout.second->setVoltage(pinout.second->currentVoltageSet + 20);
+        } else {
+            pinout.second->increaseVoltage();
+        }
+        baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
+        collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
+    }
+
+    UVoltage highestBaseVoltage = pinout.second->currentVoltageSet;
+
+    pinout.second->setVoltage(lowestBaseVoltage);
+
     MeasureResult basisMeting, collectorMeting, emitterMeting;
     basisMeting = pinout.second->doFullMeasure(nSamplesPerPoint);
     collectorMeting = pinout.first->doFullMeasure(nSamplesPerPoint);
@@ -157,21 +180,23 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     Graph::minX = Graph::graphCurrent[0].data[0].x;
     Graph::maxX = Graph::graphCurrent[0].data[0].x;
 
-    Graph::graphVoltage[0].data[0].x = - basisMeting.avgA;
-    Graph::graphVoltage[0].data[0].y = collectorMeting.avgV - emitterMeting.avgV;
-    Graph::graphVoltage[1].data[0].x = - basisMeting.minA;
-    Graph::graphVoltage[1].data[0].y = collectorMeting.minV - emitterMeting.maxV;
-    Graph::graphVoltage[2].data[0].x = - basisMeting.maxA;
-    Graph::graphVoltage[2].data[0].y = collectorMeting.maxV - emitterMeting.minV;
+    if (sampleVoltage) {
+        Graph::graphVoltage[0].data[0].x = - basisMeting.avgA;
+        Graph::graphVoltage[0].data[0].y = collectorMeting.avgV - emitterMeting.avgV;
+        Graph::graphVoltage[1].data[0].x = - basisMeting.minA;
+        Graph::graphVoltage[1].data[0].y = collectorMeting.minV - emitterMeting.maxV;
+        Graph::graphVoltage[2].data[0].x = - basisMeting.maxA;
+        Graph::graphVoltage[2].data[0].y = collectorMeting.maxV - emitterMeting.minV;
 
-    Graph::minYVoltage = Graph::graphVoltage[0].data[0].y;
-    Graph::maxYVoltage = Graph::graphVoltage[0].data[0].y;
+        Graph::minYVoltage = Graph::graphVoltage[0].data[0].y;
+        Graph::maxYVoltage = Graph::graphVoltage[0].data[0].y;
+    }
 
     unsigned int i = 1;
     pinout.second->increaseVoltage();
     // FIXME(zoek het eindpunt (waar collectorcurrent 8000µA is), en deel de beginspanning VBE tot eindspanning VBE gelijk in voor nPoints)
-    Current baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
-    Current collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
+    baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
+    collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
     while (collectorCurrent > -8000 && i < nPoints) {
         basisMeting = pinout.second->doFullMeasure(nSamplesPerPoint);
         collectorMeting = pinout.first->doFullMeasure(nSamplesPerPoint);
@@ -184,12 +209,14 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
         Graph::graphCurrent[2].data[i].x = - basisMeting.maxA;
         Graph::graphCurrent[2].data[i].y = - collectorMeting.maxA;
 
-        Graph::graphVoltage[0].data[i].x = - basisMeting.avgA;
-        Graph::graphVoltage[0].data[i].y = collectorMeting.avgV - emitterMeting.avgV;
-        Graph::graphVoltage[1].data[i].x = - basisMeting.minA;
-        Graph::graphVoltage[1].data[i].y = collectorMeting.minV - emitterMeting.maxV;
-        Graph::graphVoltage[2].data[i].x = - basisMeting.maxA;
-        Graph::graphVoltage[2].data[i].y = collectorMeting.maxV - collectorMeting.minV;
+        if (sampleVoltage) {
+            Graph::graphVoltage[0].data[i].x = - basisMeting.avgA;
+            Graph::graphVoltage[0].data[i].y = collectorMeting.avgV - emitterMeting.avgV;
+            Graph::graphVoltage[1].data[i].x = - basisMeting.minA;
+            Graph::graphVoltage[1].data[i].y = collectorMeting.minV - emitterMeting.maxV;
+            Graph::graphVoltage[2].data[i].x = - basisMeting.maxA;
+            Graph::graphVoltage[2].data[i].y = collectorMeting.maxV - collectorMeting.minV;
+        }
 
         if (Graph::graphCurrent[0].data[i].x < Graph::minX) {
             Graph::minX = Graph::graphCurrent[0].data[i].x;
@@ -205,16 +232,16 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
             Graph::maxYCurrent = Graph::graphCurrent[0].data[i].y;
         }
 
-        if (Graph::graphVoltage[0].data[i].y < Graph::minYVoltage) {
-            Graph::minYVoltage = Graph::graphVoltage[0].data[i].y;
-        }
-        if (Graph::graphVoltage[0].data[i].y > Graph::maxYVoltage) {
-            Graph::maxYVoltage = Graph::graphVoltage[0].data[i].y;
+        if (sampleVoltage) {
+            if (Graph::graphVoltage[0].data[i].y < Graph::minYVoltage) {
+                Graph::minYVoltage = Graph::graphVoltage[0].data[i].y;
+            }
+            if (Graph::graphVoltage[0].data[i].y > Graph::maxYVoltage) {
+                Graph::maxYVoltage = Graph::graphVoltage[0].data[i].y;
+            }
         }
 
-        while (pinout.second->readAverageCurrent(10) > baseCurrent - 2) {
-            pinout.second->increaseVoltage();
-        }
+        pinout.second->setVoltage((i * (highestBaseVoltage - lowestBaseVoltage) / nPoints + lowestBaseVoltage));
         ++i;
         baseCurrent = basisMeting.avgA;
         collectorCurrent = collectorMeting.avgA;
@@ -223,8 +250,10 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
         for (unsigned int j = 0; j < 3; ++j) {
             Graph::graphCurrent[j].data[i].x = 0;
             Graph::graphCurrent[j].data[i].y = 0;
-            Graph::graphVoltage[j].data[i].x = 0;
-            Graph::graphVoltage[j].data[i].y = 0;
+            if (sampleVoltage) {
+                Graph::graphVoltage[j].data[i].x = 0;
+                Graph::graphVoltage[j].data[i].y = 0;
+            }
         }
     }
     Graph::graphType = GraphContext::IB_IC;

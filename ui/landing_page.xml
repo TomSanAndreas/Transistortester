@@ -173,6 +173,7 @@ en op "Kalibreer" te drukken.</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <signal name="clicked" handler="on_increment_samples" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -202,6 +203,7 @@ en op "Kalibreer" te drukken.</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <signal name="clicked" handler="on_decrement_samples" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -229,6 +231,7 @@ en op "Kalibreer" te drukken.</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <signal name="clicked" handler="on_increment_points" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -258,6 +261,7 @@ en op "Kalibreer" te drukken.</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <signal name="clicked" handler="on_decrement_points" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -269,62 +273,6 @@ en op "Kalibreer" te drukken.</property>
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="top_attach">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkBox">
-                    <property name="width_request">200</property>
-                    <property name="height_request">40</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkButton" id="other_increment">
-                        <property name="label" translatable="yes">+</property>
-                        <property name="width_request">50</property>
-                        <property name="height_request">50</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="other_counter">
-                        <property name="width_request">50</property>
-                        <property name="height_request">50</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">0</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="other_decrement">
-                        <property name="label" translatable="yes">-</property>
-                        <property name="width_request">50</property>
-                        <property name="height_request">50</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">2</property>
                   </packing>
                 </child>
                 <child>
@@ -354,15 +302,28 @@ en op "Kalibreer" te drukken.</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="other_label">
+                  <object class="GtkLabel" id="empty_label">
                     <property name="width_request">150</property>
                     <property name="height_request">50</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">label</property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
+                    <property name="top_attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="sample_voltage">
+                    <property name="label" translatable="yes">Spanning sampelen</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="draw_indicator">True</property>
+                    <signal name="pressed" handler="on_sample_voltage_toggle" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
                     <property name="top_attach">2</property>
                   </packing>
                 </child>
@@ -505,7 +466,7 @@ en op "Kalibreer" te drukken.</property>
                             <property name="can_focus">False</property>
                             <property name="halign">end</property>
                             <property name="margin_end">5</property>
-                            <property name="label" translatable="yes">Pin 3: Collector</property>
+                            <property name="label" translatable="yes">Pin 1</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -521,7 +482,7 @@ en op "Kalibreer" te drukken.</property>
                             <property name="can_focus">False</property>
                             <property name="halign">end</property>
                             <property name="margin_end">5</property>
-                            <property name="label" translatable="yes">Pin 2: Basis</property>
+                            <property name="label" translatable="yes">Pin 2</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -537,7 +498,7 @@ en op "Kalibreer" te drukken.</property>
                             <property name="can_focus">False</property>
                             <property name="halign">end</property>
                             <property name="margin_end">5</property>
-                            <property name="label" translatable="yes">Pin 1: Emitter</property>
+                            <property name="label" translatable="yes">Pin 3</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
