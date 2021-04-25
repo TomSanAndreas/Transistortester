@@ -58,7 +58,8 @@ void Diode::measure() {
             Current anodeCurrent = pinout.first->readAverageCurrent(10);
             if (anodeCurrent < -1000) {
                 // set properties
-                voltageDrop = (((double) pinout.first->readAverageVoltage(10)) - pinout.second->readAverageVoltage(10)) / 1000;
+                forwardVoltage = (((double) pinout.first->readAverageVoltage(10)) - pinout.second->readAverageVoltage(10)) / 1000;
+                forwardCurrent = pinout.second->readAverageCurrent(10) / 1000.0;
                 type = DiodeType::possibleTypes[j];
                 // turn probes off
                 pinout.first->turnOff();
@@ -72,19 +73,19 @@ void Diode::measure() {
 void Diode::getPropertyText(PropertyType property, char* buffer) {
     switch (property) {
         case DESCRIPTION_LINE_1: {
-            sprintf(buffer, "Spanningsval: %f", voltageDrop);
+            sprintf(buffer, "Voorwaarste spanningsval is %f V,", forwardVoltage);
             break;
         }
         case DESCRIPTION_LINE_2: {
-            sprintf(buffer, "Type: %s", type.typeName);
+            sprintf(buffer, "bij een stroom van %f mA.", forwardCurrent);
             break;
         }
         case DESCRIPTION_LINE_3: {
-            sprintf(buffer, "Bereik spanningsval: %dmV - %dmV", type.voltages[0], type.voltages[2]);
+            sprintf(buffer, "Type: %s", type.typeName);
             break;
         }
         case DESCRIPTION_LINE_4: {
-            buffer[0] = '\0';
+            sprintf(buffer, "Bereik spanningsval: %dmV - %dmV", type.voltages[0], type.voltages[2]);
             break;
         }
         case PINOUT_1: {

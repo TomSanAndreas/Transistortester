@@ -10,7 +10,8 @@ struct DiodeType {
 };
 
 struct Diode : Component {
-    double voltageDrop;
+    double forwardVoltage;
+    Current forwardCurrent;
     DiodeType& type;
     // gebruikt om te kijken of de DUT een diode is
     static DUTInformation checkIfDiode();
