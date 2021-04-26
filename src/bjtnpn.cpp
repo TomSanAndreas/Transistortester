@@ -198,11 +198,8 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
     while (collectorCurrent > -8000 && i < nPoints) {
         pinout.second->setVoltage((i * (highestBaseVoltage - lowestBaseVoltage) / nPoints + lowestBaseVoltage));
-        while (!ALMOSTEQUAL(VCE, collectorMeting.avgV - emitterMeting.avgV, 0.05)) {
+        while (!ALMOSTEQUAL(VCE, collectorMeting.avgV - emitterMeting.avgV, 0.05) && pinout.first->currentVoltageSet < 4000) {
             pinout.first->increaseVoltage();
-            if (pinout.first->currentVoltageSet > 4000) {
-                goto end;
-            }
             collectorMeting = pinout.first->doFullMeasure(3);
             emitterMeting = pinout.third->doFullMeasure(3);
         }
@@ -253,7 +250,6 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
         baseCurrent = basisMeting.avgA;
         collectorCurrent = collectorMeting.avgA;
     }
-    end:
     if (i != nPoints) {
         for (unsigned int j = 0; j < 3; ++j) {
             Graph::graphCurrent[j].data[i].x = 0;
