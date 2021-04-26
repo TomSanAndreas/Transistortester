@@ -71,11 +71,20 @@ struct GraphWindow {
             // zet alle y-labels zichtbaar
             for (unsigned int i = 0; i < 9; ++i) {
                 gtk_widget_set_opacity((GtkWidget*) yLabelsLeft[i], 1.0);
-                gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 1.0);
+                if (MeasureProperties::shouldSampleVoltage) {
+                    gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 1.0);
+                } else {
+                    gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 0.0);
+                }
             }
             // zet de eenheden op het einde van de X- en Y-as zichtbaar
             gtk_widget_set_opacity((GtkWidget*) unit1, 1.0);
             gtk_widget_set_opacity((GtkWidget*) unit2, 1.0);
+            if (MeasureProperties::shouldSampleVoltage) {
+                gtk_widget_set_opacity((GtkWidget*) unit3, 1.0);
+            } else {
+                gtk_widget_set_opacity((GtkWidget*) unit3, 0.0);
+            }
             // stel de eenheden op het einde van de X- en Y-as in
             gtk_label_set_text(unit1, GraphContext::data[Graph::graphType].xUnit);
             gtk_label_set_text(unit2, GraphContext::data[Graph::graphType].yUnit1);
@@ -97,8 +106,10 @@ struct GraphWindow {
             for (unsigned char i = 0; i < 9; ++i) {
                 sprintf(buffer, "%8d", (i + 1) * (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent);
                 gtk_label_set_text(yLabelsLeft[i], buffer);
-                sprintf(buffer, "%8d", (i + 1) * (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage);
-                gtk_label_set_text(yLabelsRight[i], buffer);
+                if (MeasureProperties::shouldSampleVoltage) {
+                    sprintf(buffer, "%8d", (i + 1) * (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage);
+                    gtk_label_set_text(yLabelsRight[i], buffer);
+                }
             }
             return FALSE;
         }), NULL);
