@@ -146,7 +146,7 @@ struct GraphWindow {
                 gtk_label_set_text(xLabels[i], buffer);
             }
             for (unsigned char i = 0; i < 9; ++i) {
-                sprintf(buffer, "%8d", (i + 1) * (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent);
+                sprintf(buffer, "%3f", (i + 1) * ((float) (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent) / 1000.0);
                 gtk_label_set_text(yLabelsLeft[i], buffer);
                 if (MeasureProperties::shouldSampleVoltage) {
                     sprintf(buffer, "%8d", (i + 1) * (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage);
