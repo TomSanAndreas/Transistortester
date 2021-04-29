@@ -27,6 +27,48 @@ struct CalibrationDialog {
     GtkProgressBar* progress_bar;
 };
 
+struct MeasureProperties {
+    static GtkLabel* description[3];
+    static const char* descriptionNames[];
+    static GtkLabel* currentValue[2];
+    static unsigned int currentValueInt[2];
+    static const char* currentValueNames[];
+    static GtkButton* decrementValue[2];
+    static const char* decrementValueNames[];
+    static GtkButton* incrementValue[2];
+    static const char* incrementValueNames[];
+    static GtkCheckButton* sampleVoltageButton;
+    static const char* sampleVoltageButtonLabel;
+    static bool shouldSampleVoltage;
+};
+
+GtkLabel* MeasureProperties::description[3];
+GtkLabel* MeasureProperties::currentValue[2];
+unsigned int MeasureProperties::currentValueInt[2];
+GtkButton* MeasureProperties::incrementValue[2];
+GtkButton* MeasureProperties::decrementValue[2];
+GtkCheckButton* MeasureProperties::sampleVoltageButton;
+
+const char* MeasureProperties::descriptionNames[] = {
+    "samples_label", "punten_label", "empty_label"
+};
+
+const char* MeasureProperties::currentValueNames[] = {
+    "samples_counter", "punten_counter"
+};
+
+const char* MeasureProperties::decrementValueNames[] = {
+    "samples_decrement", "punten_decrement"
+};
+
+const char* MeasureProperties::incrementValueNames[] = {
+    "samples_increment", "punten_increment"
+};
+
+bool MeasureProperties::shouldSampleVoltage = false;
+
+const char* MeasureProperties::sampleVoltageButtonLabel = "sample_voltage";
+
 // everything in this struct is static, so the lambda can have a reference
 // to its members without needing "this" in its capture list
 // there will always be only 1 GraphWindow visible, so it doesn't change
@@ -166,48 +208,6 @@ struct BottomPanel {
 };
 
 GtkButton* BottomPanel::toggle1,* BottomPanel::toggle2,* BottomPanel::toggle3;
-
-struct MeasureProperties {
-    static GtkLabel* description[3];
-    static const char* descriptionNames[];
-    static GtkLabel* currentValue[2];
-    static unsigned int currentValueInt[2];
-    static const char* currentValueNames[];
-    static GtkButton* decrementValue[2];
-    static const char* decrementValueNames[];
-    static GtkButton* incrementValue[2];
-    static const char* incrementValueNames[];
-    static GtkCheckButton* sampleVoltageButton;
-    static const char* sampleVoltageButtonLabel;
-    static bool shouldSampleVoltage;
-};
-
-GtkLabel* MeasureProperties::description[3];
-GtkLabel* MeasureProperties::currentValue[2];
-unsigned int MeasureProperties::currentValueInt[2];
-GtkButton* MeasureProperties::incrementValue[2];
-GtkButton* MeasureProperties::decrementValue[2];
-GtkCheckButton* MeasureProperties::sampleVoltageButton;
-
-const char* MeasureProperties::descriptionNames[] = {
-    "samples_label", "punten_label", "empty_label"
-};
-
-const char* MeasureProperties::currentValueNames[] = {
-    "samples_counter", "punten_counter"
-};
-
-const char* MeasureProperties::decrementValueNames[] = {
-    "samples_decrement", "punten_decrement"
-};
-
-const char* MeasureProperties::incrementValueNames[] = {
-    "samples_increment", "punten_increment"
-};
-
-bool MeasureProperties::shouldSampleVoltage = false;
-
-const char* MeasureProperties::sampleVoltageButtonLabel = "sample_voltage";
 
 struct ComponentProperties {
     static GtkLabel* property[4];
