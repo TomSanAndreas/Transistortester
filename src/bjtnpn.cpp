@@ -190,7 +190,7 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
 
         // Graph::minYVoltage = Graph::graphVoltage[0].data[0].y;
         Graph::minYVoltage = 0;
-        Graph::maxYVoltage = Graph::graphVoltage[0].data[0].y;
+        Graph::maxYVoltage = 1.5 * Graph::graphVoltage[0].data[0].y;
     }
     UVoltage VCE = collectorMeting.avgV - emitterMeting.avgV;
     unsigned int i = 1;
@@ -243,8 +243,8 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
             // if (Graph::graphVoltage[0].data[i].y < Graph::minYVoltage) {
             //     Graph::minYVoltage = Graph::graphVoltage[0].data[i].y;
             // }
-            if (Graph::graphVoltage[0].data[i].y > Graph::maxYVoltage) {
-                Graph::maxYVoltage = Graph::graphVoltage[0].data[i].y;
+            if (1.5 * Graph::graphVoltage[0].data[i].y > Graph::maxYVoltage) {
+                Graph::maxYVoltage = 1.5 * Graph::graphVoltage[0].data[i].y;
             }
         }
         ++i;
