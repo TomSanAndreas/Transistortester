@@ -290,7 +290,7 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
     Graph::maxX = 0;
     Graph::minX = beginCollectorVoltage;
     Graph::maxYCurrent = 0;
-    unsigned int index = 1;
+    unsigned int index = 0;
     MeasureResult collector, emitter;
     for (int i = 0; i < 600 - beginCollectorVoltage; i += voltageIncreasePerIteration) {
         pinout.first->setVoltage(beginCollectorVoltage + i);

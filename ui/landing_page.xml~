@@ -147,6 +147,7 @@ en op "Kalibreer" te drukken.</property>
               <object class="GtkSeparator">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="opacity">0</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -340,6 +341,7 @@ en op "Kalibreer" te drukken.</property>
               <object class="GtkSeparator">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="opacity">0</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -361,7 +363,7 @@ en op "Kalibreer" te drukken.</property>
                     <property name="can_focus">False</property>
                     <property name="halign">start</property>
                     <property name="margin_start">5</property>
-                    <property name="label" translatable="yes">Type: NPN BJT</property>
+                    <property name="label" translatable="yes">property_0</property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -374,7 +376,7 @@ en op "Kalibreer" te drukken.</property>
                     <property name="can_focus">False</property>
                     <property name="halign">start</property>
                     <property name="margin_start">5</property>
-                    <property name="label" translatable="yes">Beta: 113</property>
+                    <property name="label" translatable="yes">property_1</property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -387,7 +389,7 @@ en op "Kalibreer" te drukken.</property>
                     <property name="can_focus">False</property>
                     <property name="halign">start</property>
                     <property name="margin_start">5</property>
-                    <property name="label" translatable="yes">Saturatiespanning VCE: 253 mV</property>
+                    <property name="label" translatable="yes">property_2</property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -400,7 +402,7 @@ en op "Kalibreer" te drukken.</property>
                     <property name="can_focus">False</property>
                     <property name="halign">start</property>
                     <property name="margin_start">5</property>
-                    <property name="label" translatable="yes">Saturatiespanning VBE: 701 mV</property>
+                    <property name="label" translatable="yes">property_3</property>
                   </object>
                   <packing>
                     <property name="left_attach">0</property>
@@ -418,6 +420,7 @@ en op "Kalibreer" te drukken.</property>
               <object class="GtkSeparator">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="opacity">0</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -439,7 +442,7 @@ en op "Kalibreer" te drukken.</property>
                     <property name="can_focus">False</property>
                     <property name="margin_top">5</property>
                     <property name="margin_bottom">5</property>
-                    <property name="label" translatable="yes">BC549</property>
+                    <property name="label" translatable="yes">Ongekend apparaat</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
@@ -522,7 +525,7 @@ en op "Kalibreer" te drukken.</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">start</property>
-                        <property name="pixbuf">bjt_npn.png</property>
+                        <property name="pixbuf">unknown.png</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -548,6 +551,7 @@ en op "Kalibreer" te drukken.</property>
               <object class="GtkSeparator">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="opacity">0</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -604,7 +608,7 @@ en op "Kalibreer" te drukken.</property>
                 <property name="homogeneous">True</property>
                 <child>
                   <object class="GtkButton" id="toggle_1">
-                    <property name="label" translatable="yes">Beta i.f.v. IC</property>
+                    <property name="label" translatable="yes">Optie 1</property>
                     <property name="width_request">120</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
@@ -613,7 +617,6 @@ en op "Kalibreer" te drukken.</property>
                     <property name="halign">center</property>
                     <property name="valign">center</property>
                     <property name="margin_start">15</property>
-                    <property name="margin_end">15</property>
                     <signal name="clicked" handler="measurefirst" swapped="no"/>
                   </object>
                   <packing>
@@ -624,7 +627,7 @@ en op "Kalibreer" te drukken.</property>
                 </child>
                 <child>
                   <object class="GtkButton" id="toggle_2">
-                    <property name="label" translatable="yes">IC i.f.v. VCE</property>
+                    <property name="label" translatable="yes">Optie 2</property>
                     <property name="width_request">120</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
@@ -633,7 +636,6 @@ en op "Kalibreer" te drukken.</property>
                     <property name="halign">center</property>
                     <property name="valign">center</property>
                     <property name="margin_start">15</property>
-                    <property name="margin_end">15</property>
                     <signal name="clicked" handler="measuresecond" swapped="no"/>
                   </object>
                   <packing>
@@ -644,7 +646,7 @@ en op "Kalibreer" te drukken.</property>
                 </child>
                 <child>
                   <object class="GtkButton" id="toggle_3">
-                    <property name="label" translatable="yes">IC i.f.v. VBE</property>
+                    <property name="label" translatable="yes">Optie 3</property>
                     <property name="width_request">120</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
@@ -653,7 +655,6 @@ en op "Kalibreer" te drukken.</property>
                     <property name="halign">center</property>
                     <property name="valign">center</property>
                     <property name="margin_start">15</property>
-                    <property name="margin_end">15</property>
                     <signal name="clicked" handler="measurethird" swapped="no"/>
                   </object>
                   <packing>
@@ -673,6 +674,7 @@ en op "Kalibreer" te drukken.</property>
               <object class="GtkSeparator">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="opacity">0</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -1307,7 +1309,7 @@ en op "Kalibreer" te drukken.</property>
                     <property name="height_request">50</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Beta in functie van IC</property>
+                    <property name="label" translatable="yes">Grafiektitel</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
