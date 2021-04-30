@@ -261,6 +261,7 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
             }
         }
     }
+    Graph::nPoints = i;
     pinout.first->turnOff();
     pinout.second->turnOff();
     pinout.third->turnOff();
@@ -290,7 +291,7 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
     Graph::minX = beginCollectorVoltage;
     unsigned int index = 0;
     MeasureResult collector, emitter;
-    for (unsigned int i = 0; i < 750 - beginCollectorVoltage; i += voltageIncreasePerIteration) {
+    for (int i = 0; i < 750 - beginCollectorVoltage; i += voltageIncreasePerIteration) {
         pinout.first->setVoltage(beginCollectorVoltage + i);
         baseCurrent = pinout.second->readAverageCurrent(5);
         while (baseCurrent < - 22) {
@@ -315,7 +316,7 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
 
         ++index;
     }
-
+    Graph::nPoints = index + 1;
     pinout.first->turnOff();
     pinout.second->turnOff();
     pinout.third->turnOff();

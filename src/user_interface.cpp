@@ -145,14 +145,14 @@ struct GraphWindow {
             // labels zetten
             char buffer[10];
             for (unsigned char i = 0; i < 21; ++i) {
-                sprintf(buffer, "%4d%*s", ((float) (i + 1) * (Graph::maxX - Graph::minX) / 21 + Graph::minX) / GraphContext::data[Graph::graphType].scaleFactorX, 2, " ");
+                sprintf(buffer, "%4f%*s", ((float) (i + 1) * (Graph::maxX - Graph::minX) / 21 + Graph::minX) / GraphContext::data[Graph::graphType].scaleFactorX, 2, " ");
                 gtk_label_set_text(xLabels[i], buffer);
             }
             for (unsigned char i = 0; i < 9; ++i) {
                 sprintf(buffer, "%3f", (i + 1) * ((float) (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent) / GraphContext::data[Graph::graphType].scaleFactorY1);
                 gtk_label_set_text(yLabelsLeft[i], buffer);
                 if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
-                    sprintf(buffer, "%8d", (i + 1) * ((float) (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage) / GraphContext::data[Graph::graphType].scaleFactorY2);
+                    sprintf(buffer, "%3f", (i + 1) * ((float) (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage) / GraphContext::data[Graph::graphType].scaleFactorY2);
                     gtk_label_set_text(yLabelsRight[i], buffer);
                 }
             }
@@ -366,7 +366,7 @@ extern "C" {
         }
         // plotten grafieken
         for (unsigned char i = 0; i < 3; ++i) {
-            for (unsigned int j = 0; j < MeasureProperties::currentValueInt[1]; ++j) {
+            for (unsigned int j = 0; j < Graph::nPoints; ++j) {
                 if (Graph::graphCurrent[i].data[j].x == 0 && Graph::graphCurrent[i].data[j].y == 0)
                     break;
                 cairo_line_to(cr, (Graph::graphCurrent[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphCurrent[i].data[j].y - Graph::minYCurrent) * scaleY1);
@@ -374,7 +374,7 @@ extern "C" {
             gdk_cairo_set_source_rgba(cr, &colorsC[i]);
             cairo_stroke(cr);
             if (MeasureProperties::shouldSampleVoltage) {
-                for (unsigned int j = 0; j < 50; ++j) {
+                for (unsigned int j = 0; j < Graph::nPoints; ++j) {
                     if (Graph::graphVoltage[i].data[j].x == 0 && Graph::graphVoltage[i].data[j].y == 0)
                         break;
                     cairo_line_to(cr, (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphVoltage[i].data[j].y - Graph::minYVoltage) * scaleY2);

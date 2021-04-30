@@ -39,6 +39,7 @@ enum GraphType {
 struct Graph {
     Point* data = nullptr;
     static GraphType graphType;
+    static unsigned int nPoints;
     static int maxX, minX, maxYCurrent, minYCurrent, maxYVoltage, minYVoltage;
     static Graph graphCurrent[];
     static Graph graphVoltage[];

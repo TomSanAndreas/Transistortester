@@ -8,6 +8,8 @@ const GraphContext GraphContext::data[] = {
 
 GraphType Graph::graphType;
 
+unsigned int Graph::nPoints = 0;
+
 int Graph::minX;
 int Graph::maxX;
 
