@@ -81,6 +81,7 @@ struct GraphWindow {
     static const char* xLabelsNames[];
     static GtkLabel* unit0,* unit1,* unit2,* unit3;
     static GtkLabel* graphTitle;
+    static bool isStable;
     void makeCompletelyInvisible() {
         // uitvoeren op de "main" thread; om deze lambda uitvoerbaar te maken met een lege capture-list, zijn alle objecten static
         g_idle_add(G_SOURCE_FUNC(+[]() {
@@ -137,6 +138,8 @@ struct GraphWindow {
             gtk_label_set_text(graphTitle, GraphContext::data[Graph::graphType].graphTitle);
             // grafiek zichtbaar maken
             gtk_widget_set_opacity(self, 1.0);
+            // aangeven dat de data stabiel is
+            isStable = true;
             // grafiek opnieuw tekenen
             gtk_widget_queue_draw(self);
             // labels zetten
@@ -172,6 +175,8 @@ const char* GraphWindow::yLabelsRightNames[] = {
 const char* GraphWindow::xLabelsNames[] = {
     "x_0", "x_1", "x_2", "x_3", "x_4", "x_5", "x_6", "x_7", "x_8", "x_9", "x_10", "x_11", "x_12", "x_13", "x_14", "x_15", "x_16", "x_17", "x_18", "x_19", "x_20"
 };
+
+bool GraphWindow::isStable = false;
 
 // de buttons zijn static, zodanig dat de lambda "this" niet in de capture-list moet hebben
 struct BottomPanel {
@@ -333,8 +338,8 @@ extern "C" {
     G_MODULE_EXPORT
     #endif
     gboolean draw_signal(GtkWidget* widget, cairo_t* cr, gpointer data) {
-        // indien er geen data is opgeslagen, dan is data de nullptr en mag er direct gestopt worden met tekenen
-        if (Graph::graphCurrent[0].data == nullptr) {
+        // indien er geen data is opgeslagen, of de data als onstabiel is aangeduid, mag er direct gestopt worden met tekenen
+        if (Graph::graphCurrent[0].data == nullptr || !!GraphWindow::isStable) {
             return false;
         }
         // afmetingen grafiek in pixels bepalen
@@ -463,6 +468,7 @@ extern "C" {
 void determineType() {
     DUTInformation dut;
     delete Component::currentComponent;
+    Component::currentComponent = nullptr;
     // check if DUT is a BJT NPN transistor
     dut = BjtNpn::checkIfNPN();
     if (dut.isSuggestedType) {
@@ -613,6 +619,7 @@ void UserInterface::init(int* argc, char *** argv) {
             }
             if (determenRequested) {
                 mainWindow.disableAllButtons();
+                GraphWindow::isStable = false;
                 determineType();
                 mainWindow.topPanel.component.update();
                 if (Component::type == BJT_NPN || Component::type == BJT_PNP) {
@@ -624,6 +631,7 @@ void UserInterface::init(int* argc, char *** argv) {
             }
             if (measurementRequested) {
                 mainWindow.disableAllButtons();
+                GraphWindow::isStable = false;
                 switch (Component::type) {
                     case BJT_NPN: {
                         ((BjtNpn*) Component::currentComponent)->generateIbIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0], mainWindow.topPanel.settings.shouldSampleVoltage);
