@@ -114,7 +114,7 @@ struct GraphWindow {
             // zet alle y-labels zichtbaar
             for (unsigned int i = 0; i < 9; ++i) {
                 gtk_widget_set_opacity((GtkWidget*) yLabelsLeft[i], 1.0);
-                if (MeasureProperties::shouldSampleVoltage) {
+                if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
                     gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 1.0);
                 } else {
                     gtk_widget_set_opacity((GtkWidget*) yLabelsRight[i], 0.0);
@@ -123,7 +123,7 @@ struct GraphWindow {
             // zet de eenheden op het einde van de X- en Y-as zichtbaar
             gtk_widget_set_opacity((GtkWidget*) unit1, 1.0);
             gtk_widget_set_opacity((GtkWidget*) unit2, 1.0);
-            if (MeasureProperties::shouldSampleVoltage) {
+            if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
                 gtk_widget_set_opacity((GtkWidget*) unit3, 1.0);
             } else {
                 gtk_widget_set_opacity((GtkWidget*) unit3, 0.0);
@@ -145,14 +145,14 @@ struct GraphWindow {
             // labels zetten
             char buffer[10];
             for (unsigned char i = 0; i < 21; ++i) {
-                sprintf(buffer, "%4d%*s", (i + 1) * (Graph::maxX - Graph::minX) / 21 + Graph::minX, 2, " ");
+                sprintf(buffer, "%4d%*s", ((float) (i + 1) * (Graph::maxX - Graph::minX) / 21 + Graph::minX) / GraphContext::data[Graph::graphType].scaleFactorX, 2, " ");
                 gtk_label_set_text(xLabels[i], buffer);
             }
             for (unsigned char i = 0; i < 9; ++i) {
-                sprintf(buffer, "%3f", (i + 1) * ((float) (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent) / 1000.0);
+                sprintf(buffer, "%3f", (i + 1) * ((float) (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent) / GraphContext::data[Graph::graphType].scaleFactorY1);
                 gtk_label_set_text(yLabelsLeft[i], buffer);
-                if (MeasureProperties::shouldSampleVoltage) {
-                    sprintf(buffer, "%8d", (i + 1) * (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage);
+                if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
+                    sprintf(buffer, "%8d", (i + 1) * ((float) (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage) / GraphContext::data[Graph::graphType].scaleFactorY2);
                     gtk_label_set_text(yLabelsRight[i], buffer);
                 }
             }
@@ -406,7 +406,25 @@ extern "C" {
     #ifdef WINDOWS
     G_MODULE_EXPORT
     #endif
-    void measure(GtkWidget* widget, gpointer user_data) {
+    void measurefirst(GtkWidget* widget, gpointer user_data) {
+        // TODO use current component to determine correct graph type for NMOS/PMOS/JFET/...
+        Graph::graphType = GraphType::IB_IC;
+        measurementRequested = true;
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void measuresecond(GtkWidget* widget, gpointer user_data) {
+        // TODO use current component to determine correct graph type for NMOS/PMOS/JFET/...
+        Graph::graphType = GraphType::VCE_IC;
+        measurementRequested = true;
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void measurethird(GtkWidget* widget, gpointer user_data) {
+        // TODO use current component to determine correct graph type for NMOS/PMOS/JFET/...
+        Graph::graphType = GraphType::VBE_IC;
         measurementRequested = true;
     }
     #ifdef WINDOWS
@@ -641,10 +659,13 @@ void UserInterface::init(int* argc, char *** argv) {
                                 mainWindow.bottomPanel.updateButtons();
                                 break;
                             }
-                            case (GraphType::IC_VBE): {
+                            case (GraphType::VCE_IC): {
+                                ((BjtNpn*) Component::currentComponent)->generateVceIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0]);
+                                mainWindow.bottomPanel.graphWindow.updateGraph();
+                                mainWindow.bottomPanel.updateButtons();
                                 break;
                             }
-                            case (GraphType::IC_VCE): {
+                            case (GraphType::VBE_IC): {
                                 break;
                             }
                         }

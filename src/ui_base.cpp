@@ -1,9 +1,9 @@
 #include "ui_base.hpp"
 
 const GraphContext GraphContext::data[] = {
-    {"uA", "mA", "mV", "IC en VCE i.f.v. IB",  {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}, 1.0, 1000.0, 1.0},
-    {"mA", "mV", "", "VCE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}, 1000.0, 1.0, 1.0},
-    {"mA", "mV", "", "VBE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}, 1000.0, 1.0, 1.0}
+    {"uA", "mA", "mV", "IC en VCE i.f.v. IB",  {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}, 1.0, 1000.0, 1.0, true},
+    {"mV", "mA", "", "VCE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}, 1.0, 1000.0, 1.0, false},
+    {"mV", "mA", "", "VBE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}, 1.0, 1000.0, 1.0, false}
 };
 
 GraphType Graph::graphType;

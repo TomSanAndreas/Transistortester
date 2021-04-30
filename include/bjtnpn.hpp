@@ -11,6 +11,7 @@ struct BjtNpn : Component {
     static DUTInformation checkIfNPN();
     // genereren grafieken
     void generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint, bool sampleVoltage);
+    void generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint);
     // eigenschappen in tekst uitdrukken
     void getPropertyText(PropertyType property, char* buffer);
     // pinout: first - collector, second - base, third - emitter

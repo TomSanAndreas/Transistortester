@@ -266,6 +266,61 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     pinout.third->turnOff();
 }
 
+void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint) {
+    // oorspronkelijke grafieken worden uit het geheugen gehaald en nieuw geheugen wordt gemaakt
+    for (unsigned char i = 0; i < 3; ++i) {
+        delete[] Graph::graphCurrent[i].data;
+        delete[] Graph::graphVoltage[i].data;
+        Graph::graphCurrent[i].data = new Point[nPoints];
+        Graph::graphVoltage[i].data = nullptr;
+    }
+
+    pinout.third->setVoltage(0);
+    pinout.first->setVoltage(500);
+    pinout.second->setVoltage(600);
+
+    Current baseCurrent = pinout.second->readAverageCurrent(5);
+    while (baseCurrent > - 20) {
+        pinout.second->increaseVoltage();
+        baseCurrent = pinout.second->readAverageCurrent(5);
+    }
+    UVoltage beginCollectorVoltage = pinout.first->readAverageVoltage(5);
+    UVoltage voltageIncreasePerIteration = (750 - beginCollectorVoltage) / nPoints;
+    Graph::maxX = 750;
+    Graph::minX = beginCollectorVoltage;
+    unsigned int index = 0;
+    MeasureResult collector, emitter;
+    for (unsigned int i = 0; i < 750 - beginCollectorVoltage; i += voltageIncreasePerIteration) {
+        pinout.first->setVoltage(beginCollectorVoltage + i);
+        baseCurrent = pinout.second->readAverageCurrent(5);
+        while (baseCurrent < - 22) {
+            pinout.second->decreaseVoltage();
+            baseCurrent = pinout.second->readAverageCurrent(5);
+        }
+        collector = pinout.first->doFullMeasure(nSamplesPerPoint);
+        emitter = pinout.third->doFullMeasure(nSamplesPerPoint);
+        Graph::graphCurrent[0].data[index].x = collector.avgV - emitter.avgV;
+        Graph::graphCurrent[1].data[index].x = collector.minV - emitter.maxV;
+        Graph::graphCurrent[2].data[index].x = collector.maxV - emitter.minV;
+
+        Graph::graphCurrent[0].data[index].y = - collector.avgA;
+        Graph::graphCurrent[0].data[index].y = - collector.maxA;
+        Graph::graphCurrent[0].data[index].y = - collector.minA;
+
+        if (Graph::graphCurrent[0].data[index].y > Graph::maxYCurrent) {
+            Graph::maxYCurrent = Graph::graphCurrent[0].data[index].y;
+        } else if (Graph::graphCurrent[0].data[index].y < Graph::minYCurrent) {
+            Graph::minYCurrent = Graph::graphCurrent[0].data[index].y;
+        }
+
+        ++index;
+    }
+
+    pinout.first->turnOff();
+    pinout.second->turnOff();
+    pinout.third->turnOff();
+}
+
 void BjtNpn::getPropertyText(PropertyType property, char* buffer) {
     switch (property) {
         case DESCRIPTION_LINE_1: {

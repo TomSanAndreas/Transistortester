@@ -32,8 +32,8 @@ struct Point {
 
 enum GraphType {
     IB_IC = 0,
-    IC_VCE = 1,
-    IC_VBE = 2
+    VCE_IC = 1,
+    VBE_IC = 2
 };
 
 struct Graph {
@@ -49,6 +49,7 @@ struct GraphContext {
     const char* graphTitle;
     const char* buttonDiscription[3];
     const float scaleFactorX, scaleFactorY1, scaleFactorY2;
+    const bool canMeasureVoltage;
     static const GraphContext data[];
 };
 
