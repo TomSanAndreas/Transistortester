@@ -30,9 +30,15 @@ struct Point {
     float x, y;
 };
 
+enum GraphType {
+    IB_IC = 0,
+    IC_VCE = 1,
+    IC_VBE = 2
+};
+
 struct Graph {
     Point* data = nullptr;
-    static unsigned int graphType;
+    static GraphType graphType;
     static int maxX, minX, maxYCurrent, minYCurrent, maxYVoltage, minYVoltage;
     static Graph graphCurrent[];
     static Graph graphVoltage[];
@@ -42,8 +48,8 @@ struct GraphContext {
     const char* xUnit,* yUnit1,* yUnit2;
     const char* graphTitle;
     const char* buttonDiscription[3];
+    const float scaleFactorX, scaleFactorY1, scaleFactorY2;
     static const GraphContext data[];
-    static const unsigned int IB_IC, IC_VCE, IC_VBE;
 };
 
 enum PropertyType {

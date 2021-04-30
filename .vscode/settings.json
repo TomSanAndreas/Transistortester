@@ -8,6 +8,17 @@
         "utility": "cpp",
         "sstream": "cpp",
         "map": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "*.tcc": "cpp",
+        "string": "cpp",
+        "vector": "cpp",
+        "functional": "cpp",
+        "istream": "cpp",
+        "limits": "cpp",
+        "ostream": "cpp",
+        "ratio": "cpp",
+        "stop_token": "cpp",
+        "streambuf": "cpp",
+        "tuple": "cpp"
     }
 }

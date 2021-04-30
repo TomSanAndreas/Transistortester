@@ -1,16 +1,12 @@
 #include "ui_base.hpp"
 
-const unsigned int GraphContext::IB_IC = 0;
-const unsigned int GraphContext::IC_VCE = 1;
-const unsigned int GraphContext::IC_VBE = 2;
-
 const GraphContext GraphContext::data[] = {
-    {"uA", "mA", "mV", "IC en VCE i.f.v. IB",  {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}},
-    {"mA", "mV", "", "VCE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}},
-    {"mA", "mV", "", "VBE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}}
+    {"uA", "mA", "mV", "IC en VCE i.f.v. IB",  {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}, 1.0, 1000.0, 1.0},
+    {"mA", "mV", "", "VCE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}, 1000.0, 1.0, 1.0},
+    {"mA", "mV", "", "VBE i.f.v. IC", {"IC en VCE i.f.v. IB", "VCE i.f.v. IC", "VBE i.f.v. IC"}, 1000.0, 1.0, 1.0}
 };
 
-unsigned int Graph::graphType;
+GraphType Graph::graphType;
 
 int Graph::minX;
 int Graph::maxX;

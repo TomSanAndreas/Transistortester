@@ -261,7 +261,6 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
             }
         }
     }
-    Graph::graphType = GraphContext::IB_IC;
     pinout.first->turnOff();
     pinout.second->turnOff();
     pinout.third->turnOff();

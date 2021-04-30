@@ -634,9 +634,20 @@ void UserInterface::init(int* argc, char *** argv) {
                 GraphWindow::isStable = false;
                 switch (Component::type) {
                     case BJT_NPN: {
-                        ((BjtNpn*) Component::currentComponent)->generateIbIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0], mainWindow.topPanel.settings.shouldSampleVoltage);
-                        mainWindow.bottomPanel.graphWindow.updateGraph();
-                        mainWindow.bottomPanel.updateButtons();
+                        switch (Graph::graphType) {
+                            case (GraphType::IB_IC): {
+                                ((BjtNpn*) Component::currentComponent)->generateIbIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0], mainWindow.topPanel.settings.shouldSampleVoltage);
+                                mainWindow.bottomPanel.graphWindow.updateGraph();
+                                mainWindow.bottomPanel.updateButtons();
+                                break;
+                            }
+                            case (GraphType::IC_VBE): {
+                                break;
+                            }
+                            case (GraphType::IC_VCE): {
+                                break;
+                            }
+                        }
                         break;
                     }
                     case BJT_PNP: {
