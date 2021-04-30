@@ -272,7 +272,7 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
     for (unsigned char i = 0; i < 3; ++i) {
         delete[] Graph::graphCurrent[i].data;
         delete[] Graph::graphVoltage[i].data;
-        Graph::graphCurrent[i].data = new Point[nPoints];
+        Graph::graphCurrent[i].data = new Point[nPoints + 1];
         Graph::graphVoltage[i].data = nullptr;
     }
 
@@ -301,8 +301,8 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
         collector = pinout.first->doFullMeasure(nSamplesPerPoint);
         emitter = pinout.third->doFullMeasure(nSamplesPerPoint);
         Graph::graphCurrent[0].data[index].x = collector.avgV - emitter.avgV;
-        Graph::graphCurrent[1].data[index].x = collector.minV - emitter.maxV;
-        Graph::graphCurrent[2].data[index].x = collector.maxV - emitter.minV;
+        Graph::graphCurrent[1].data[index].x = collector.minV - emitter.minV;
+        Graph::graphCurrent[2].data[index].x = collector.maxV - emitter.maxV;
 
         Graph::graphCurrent[0].data[index].y = - collector.avgA;
         Graph::graphCurrent[0].data[index].y = - collector.maxA;
@@ -319,7 +319,7 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
 
         ++index;
     }
-    Graph::nPoints = index + 1;
+    Graph::nPoints = index;
     pinout.first->turnOff();
     pinout.second->turnOff();
     pinout.third->turnOff();
