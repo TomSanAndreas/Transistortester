@@ -145,14 +145,14 @@ struct GraphWindow {
             // labels zetten
             char buffer[10];
             for (unsigned int i = 0; i < 21; ++i) {
-                sprintf(buffer, "%.3f", ((float) (i + 1) * (Graph::maxX - Graph::minX) / 21 + Graph::minX) / GraphContext::data[Graph::graphType].scaleFactorX);
+                sprintf(buffer, "%.1f", ((float) (i + 1) * (Graph::maxX - Graph::minX) / 21 + Graph::minX) / GraphContext::data[Graph::graphType].scaleFactorX);
                 gtk_label_set_text(xLabels[i], buffer);
             }
             for (unsigned int i = 0; i < 9; ++i) {
-                sprintf(buffer, "%.3f", (i + 1) * ((float) (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent) / GraphContext::data[Graph::graphType].scaleFactorY1);
+                sprintf(buffer, "%.1f", (i + 1) * ((float) (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent) / GraphContext::data[Graph::graphType].scaleFactorY1);
                 gtk_label_set_text(yLabelsLeft[i], buffer);
                 if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
-                    sprintf(buffer, "%.3f", (i + 1) * ((float) (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage) / GraphContext::data[Graph::graphType].scaleFactorY2);
+                    sprintf(buffer, "%.1f", (i + 1) * ((float) (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage) / GraphContext::data[Graph::graphType].scaleFactorY2);
                     gtk_label_set_text(yLabelsRight[i], buffer);
                 }
             }
@@ -373,7 +373,7 @@ extern "C" {
             }
             gdk_cairo_set_source_rgba(cr, &colorsC[i]);
             cairo_stroke(cr);
-            if (MeasureProperties::shouldSampleVoltage) {
+            if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
                 for (unsigned int j = 0; j < Graph::nPoints; ++j) {
                     if (Graph::graphVoltage[i].data[j].x == 0 && Graph::graphVoltage[i].data[j].y == 0)
                         break;

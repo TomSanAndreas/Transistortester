@@ -277,24 +277,24 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
     }
 
     pinout.third->setVoltage(0);
-    pinout.first->setVoltage(500);
+    pinout.first->setVoltage(50);
     pinout.second->setVoltage(600);
 
     Current baseCurrent = pinout.second->readAverageCurrent(5);
-    while (baseCurrent > - 20) {
+    while (baseCurrent > - 50) {
         pinout.second->increaseVoltage();
         baseCurrent = pinout.second->readAverageCurrent(5);
     }
     UVoltage beginCollectorVoltage = pinout.first->readAverageVoltage(5);
-    UVoltage voltageIncreasePerIteration = (750 - beginCollectorVoltage) / nPoints;
-    Graph::maxX = 750;
+    UVoltage voltageIncreasePerIteration = (600 - beginCollectorVoltage) / nPoints;
+    Graph::maxX = 0;
     Graph::minX = beginCollectorVoltage;
     unsigned int index = 0;
     MeasureResult collector, emitter;
-    for (int i = 0; i < 750 - beginCollectorVoltage; i += voltageIncreasePerIteration) {
+    for (int i = 0; i < 600 - beginCollectorVoltage; i += voltageIncreasePerIteration) {
         pinout.first->setVoltage(beginCollectorVoltage + i);
         baseCurrent = pinout.second->readAverageCurrent(5);
-        while (baseCurrent < - 22) {
+        while (baseCurrent < - 55) {
             pinout.second->decreaseVoltage();
             baseCurrent = pinout.second->readAverageCurrent(5);
         }
@@ -312,6 +312,9 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
             Graph::maxYCurrent = Graph::graphCurrent[0].data[index].y;
         } else if (Graph::graphCurrent[0].data[index].y < Graph::minYCurrent) {
             Graph::minYCurrent = Graph::graphCurrent[0].data[index].y;
+        }
+        if (Graph::graphCurrent[0].data[index].x > Graph::maxX) {
+            Graph::maxX = Graph::graphCurrent[0].data[index].x;
         }
 
         ++index;
