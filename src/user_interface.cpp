@@ -366,7 +366,7 @@ extern "C" {
         }
         // plotten grafieken
         for (unsigned char i = 0; i < 3; ++i) {
-            for (unsigned int j = 0; j < Graph::nPoints; ++j) {
+            for (unsigned int j = 0; j < Graph::nPoints - 1; ++j) {
                 if (Graph::graphCurrent[i].data[j].x == 0 && Graph::graphCurrent[i].data[j].y == 0)
                     break;
                 cairo_line_to(cr, (Graph::graphCurrent[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphCurrent[i].data[j].y - Graph::minYCurrent) * scaleY1);
@@ -374,7 +374,7 @@ extern "C" {
             gdk_cairo_set_source_rgba(cr, &colorsC[i]);
             cairo_stroke(cr);
             if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
-                for (unsigned int j = 0; j < Graph::nPoints; ++j) {
+                for (unsigned int j = 0; j < Graph::nPoints - 1; ++j) {
                     if (Graph::graphVoltage[i].data[j].x == 0 && Graph::graphVoltage[i].data[j].y == 0)
                         break;
                     cairo_line_to(cr, (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphVoltage[i].data[j].y - Graph::minYVoltage) * scaleY2);
