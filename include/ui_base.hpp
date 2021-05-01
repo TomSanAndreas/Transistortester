@@ -21,6 +21,13 @@ enum ComponentType {
     UNKNOWN_DEVICE = 8
 };
 
+enum ConnectionStatus {
+    Connected = 0,
+    NotConnected = 1,
+    BadConnection = 2,
+    UnusableConnection = 3
+};
+
 struct DUTInformation {
     bool isSuggestedType;
     ProbeCombination orientation;

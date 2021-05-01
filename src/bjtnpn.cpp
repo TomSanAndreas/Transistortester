@@ -88,6 +88,7 @@ void BjtNpn::setLowestVBE() {
 }
 
 void BjtNpn::measure() {
+    unsigned int attempts = 0;
 do_measure:
     // eerst wordt VBE zo klein mogelijk gezet:
     setLowestVBE();
@@ -119,8 +120,12 @@ do_measure:
     }
     averageBeta /= nMeasures;
     // check if accurate enough, if not, measure again
-    if (!(0.5 * averageBeta < minBeta && 1.5 * averageBeta > maxBeta)) {
+    if (!(0.5 * averageBeta < minBeta && 1.5 * averageBeta > maxBeta) && attempts < 5) {
+        connectionStatus = BadConnection;
+        ++attempts;
         goto do_measure;
+    } else if (attempts == 5) {
+        connectionStatus = UnusableConnection;
     }
 
     pinout.first->turnOff();
@@ -328,19 +333,35 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
 void BjtNpn::getPropertyText(PropertyType property, char* buffer) {
     switch (property) {
         case DESCRIPTION_LINE_1: {
-            sprintf(buffer, "Minimale beta: %f", minBeta);
+            if (connectionStatus == Connected || connectionStatus == BadConnection) {
+                sprintf(buffer, "Minimale beta: %f", minBeta);
+            } else {
+                strcpy(buffer, "DUT is te slecht aangesloten.");
+            }
             break;
         }
         case DESCRIPTION_LINE_2: {
-            sprintf(buffer, "Gemiddelde beta: %f", averageBeta);
+            if (connectionStatus == Connected || connectionStatus == BadConnection) {
+                sprintf(buffer, "Gemiddelde beta: %f", averageBeta);
+            } else {
+                strcpy(buffer, "Gelieve het DUT opnieuw aan te sluiten");
+            }
             break;
         }
         case DESCRIPTION_LINE_3: {
-            sprintf(buffer, "Maximale beta: %f", maxBeta);
+            if (connectionStatus == Connected || connectionStatus == BadConnection) {
+                sprintf(buffer, "Maximale beta: %f", maxBeta);
+            } else {
+                strcpy(buffer, "en het opnieuw te proberen.");
+            }
             break;
         }
         case DESCRIPTION_LINE_4: {
-            buffer[0] = '\0';
+            if (connectionStatus == Connected || connectionStatus == UnusableConnection) {
+                buffer[0] = '\0';
+            } else if (connectionStatus == UnusableConnection) {
+                strcpy(buffer, "Mogelijks is er een slechte connectie.");
+            }
             break;
         }
         case PINOUT_1: {

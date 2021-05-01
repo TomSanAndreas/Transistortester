@@ -23,4 +23,5 @@ struct BjtNpn : Component {
         void setLowestVBE();
         // bepaalt basiseigenschappen van de transistor
         void measure();
+        ConnectionStatus connectionStatus = Connected;
 };
