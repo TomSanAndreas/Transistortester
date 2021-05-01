@@ -359,7 +359,7 @@ void BjtNpn::getPropertyText(PropertyType property, char* buffer) {
         case DESCRIPTION_LINE_4: {
             if (connectionStatus == Connected || connectionStatus == UnusableConnection) {
                 buffer[0] = '\0';
-            } else if (connectionStatus == UnusableConnection) {
+            } else if (connectionStatus == BadConnection) {
                 strcpy(buffer, "Mogelijks is er een slechte connectie.");
             }
             break;

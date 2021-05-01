@@ -23,6 +23,7 @@
           <object class="GtkButtonBox">
             <property name="width_request">350</property>
             <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
             <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="close_dialog">
@@ -31,7 +32,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="margin_start">10</property>
                 <signal name="clicked" handler="close_dialog" swapped="no"/>
               </object>
               <packing>
@@ -47,7 +47,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="margin_end">10</property>
                 <signal name="clicked" handler="start_calibration" swapped="no"/>
               </object>
               <packing>
@@ -123,6 +122,7 @@ en op "Kalibreer" te drukken.</property>
     <property name="default_width">1280</property>
     <property name="default_height">720</property>
     <signal name="destroy" handler="destroy_signal" swapped="no"/>
+    <signal name="realize" handler="get_theme" swapped="no"/>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
