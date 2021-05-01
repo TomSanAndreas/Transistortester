@@ -149,10 +149,10 @@ struct GraphWindow {
                 gtk_label_set_text(xLabels[i], buffer);
             }
             for (unsigned int i = 0; i < 9; ++i) {
-                sprintf(buffer, "%.1f", (i + 1) * ((float) (Graph::maxYCurrent - Graph::minYCurrent) / 9 + Graph::minYCurrent) / GraphContext::data[Graph::graphType].scaleFactorY1);
+                sprintf(buffer, "%.1f", ((i + 1) * ((float) (Graph::maxYCurrent - Graph::minYCurrent) / 9) + Graph::minYCurrent) / GraphContext::data[Graph::graphType].scaleFactorY1);
                 gtk_label_set_text(yLabelsLeft[i], buffer);
                 if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
-                    sprintf(buffer, "%.1f", (i + 1) * ((float) (Graph::maxYVoltage - Graph::minYVoltage) / 9 + Graph::minYVoltage) / GraphContext::data[Graph::graphType].scaleFactorY2);
+                    sprintf(buffer, "%.1f", ((i + 1) * ((float) (Graph::maxYVoltage - Graph::minYVoltage) / 9) + Graph::minYVoltage) / GraphContext::data[Graph::graphType].scaleFactorY2);
                     gtk_label_set_text(yLabelsRight[i], buffer);
                 }
             }
@@ -314,8 +314,8 @@ struct MainWindow {
     }
 } mainWindow;
 
-GdkRGBA colorsC[3] { {.66, 1, .66, 1}, {.9, 1, .5, 1}, {.9, 1, .5, 1} };
-GdkRGBA colorsV[3] { {.66, .66, 1, 1}, {.5, .9, 1, 1}, {.5, .9, 1, 1} };
+GdkColor colorsC[3] { {.red = 43690, .green = 65535, .blue = 43690}, {.red = 60000, .green = 65535, .blue = 32500}, {.red = 60000, .green = 65535, .blue = 32500} };
+GdkColor colorsV[3] { {.red = 43690, .green = 43690, .blue = 65535}, {.red = 32500, .green = 60000, .blue = 65535}, {.red = 32500, .green = 60000, .blue = 65535} };
 CalibrationDialog calibrationDialog;
 
 unsigned int segment;
@@ -368,13 +368,13 @@ extern "C" {
         for (unsigned int j = 0; j < Graph::nPoints - 1; ++j) {
             cairo_line_to(cr, (Graph::graphCurrent[0].data[j].x - Graph::minX) * scaleX, height - (Graph::graphCurrent[0].data[j].y - Graph::minYCurrent) * scaleY1);
         }
-        gdk_cairo_set_source_rgba(cr, &colorsC[0]);
+        gdk_cairo_set_source_color(cr, &colorsC[0]);
         cairo_stroke(cr);
         if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
             for (unsigned int j = 0; j < Graph::nPoints - 1; ++j) {
                 cairo_line_to(cr, (Graph::graphVoltage[0].data[j].x - Graph::minX) * scaleX, height - (Graph::graphVoltage[0].data[j].y - Graph::minYVoltage) * scaleY2);
             }
-            gdk_cairo_set_source_rgba(cr, &colorsV[0]);
+            gdk_cairo_set_source_color(cr, &colorsV[0]);
             cairo_stroke(cr);
         }
         // getransformeerde coordinaten tijdelijk bijhouden van elk punt
@@ -392,7 +392,7 @@ extern "C" {
                 // punt plaatsen
                 cairo_move_to(cr, x, y); cairo_line_to(cr, x, y);
                 // kleur plaatsen
-                gdk_cairo_set_source_rgba(cr, &colorsC[i]);
+                gdk_cairo_set_source_color(cr, &colorsC[i]);
                 cairo_stroke(cr);
             }
             // gelijkaardige stappen doorlopen voor spanning, indien van toepassing
@@ -401,13 +401,13 @@ extern "C" {
                     x = (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX;
                     y = height - (Graph::graphVoltage[i].data[j].y - Graph::minYCurrent) * scaleY2;
                     // diameter punt
-                    cairo_set_line_width(cr, 10);
+                    cairo_set_line_width(cr, 5);
                     // vorm instellen
                     cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
                     // punt plaatsen
                     cairo_move_to(cr, x, y); cairo_line_to(cr, x, y);
                     // kleur plaatsen
-                    gdk_cairo_set_source_rgba(cr, &colorsV[i]);
+                    gdk_cairo_set_source_color(cr, &colorsV[i]);
                     cairo_stroke(cr);
                 }                
             }
@@ -509,6 +509,21 @@ extern "C" {
     #endif
     void on_sample_voltage_toggle(GtkWidget* widget, gpointer user_data) {
         MeasureProperties::shouldSampleVoltage = !MeasureProperties::shouldSampleVoltage;
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void get_theme(GtkWidget* widget) {
+        GtkStyle* style = gtk_widget_get_style(widget);
+        if (style != nullptr) {
+            colorsC[0] = style->base[GTK_STATE_NORMAL];
+            colorsC[1] = style->base[GTK_STATE_ACTIVE];
+            colorsC[2] = style->base[GTK_STATE_ACTIVE];
+
+            colorsV[0] = style->text[GTK_STATE_NORMAL];
+            colorsV[1] = style->text[GTK_STATE_ACTIVE];
+            colorsV[2] = style->text[GTK_STATE_ACTIVE];
+        }
     }
 }
 

@@ -163,6 +163,8 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
 
     pinout.second->setVoltage(lowestBaseVoltage);
 
+    sleep_ms(2);
+
     MeasureResult basisMeting, collectorMeting, emitterMeting;
     basisMeting = pinout.second->doFullMeasure(nSamplesPerPoint);
     collectorMeting = pinout.first->doFullMeasure(nSamplesPerPoint);
