@@ -26,13 +26,13 @@
             <property name="orientation">vertical</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="close_dialog">
-                <property name="label" translatable="yes">Sluiten</property>
+              <object class="GtkButton" id="calibrate">
+                <property name="label" translatable="yes">Kalibreer</property>
                 <property name="width_request">150</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="close_dialog" swapped="no"/>
+                <signal name="clicked" handler="start_calibration" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -41,13 +41,13 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="calibrate">
-                <property name="label" translatable="yes">Kalibreer</property>
+              <object class="GtkButton" id="close_dialog">
+                <property name="label" translatable="yes">Sluiten</property>
                 <property name="width_request">150</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="start_calibration" swapped="no"/>
+                <signal name="clicked" handler="close_dialog" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>

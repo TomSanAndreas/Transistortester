@@ -229,7 +229,7 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
             Graph::graphVoltage[1].data[i].x = - basisMeting.minA;
             Graph::graphVoltage[1].data[i].y = collectorMeting.minV - emitterMeting.minV;
             Graph::graphVoltage[2].data[i].x = - basisMeting.maxA;
-            Graph::graphVoltage[2].data[i].y = collectorMeting.maxV - collectorMeting.maxV;
+            Graph::graphVoltage[2].data[i].y = collectorMeting.maxV - emitterMeting.maxV;
         }
 
         if (Graph::graphCurrent[0].data[i].x < Graph::minX) {
@@ -336,7 +336,7 @@ void BjtNpn::getPropertyText(PropertyType property, char* buffer) {
             if (connectionStatus == Connected || connectionStatus == BadConnection) {
                 sprintf(buffer, "Minimale beta: %f", minBeta);
             } else {
-                strcpy(buffer, "DUT is te slecht aangesloten.");
+                strcpy(buffer, "De NPN BJT is te slecht aangesloten.");
             }
             break;
         }
@@ -344,7 +344,7 @@ void BjtNpn::getPropertyText(PropertyType property, char* buffer) {
             if (connectionStatus == Connected || connectionStatus == BadConnection) {
                 sprintf(buffer, "Gemiddelde beta: %f", averageBeta);
             } else {
-                strcpy(buffer, "Gelieve het DUT opnieuw aan te sluiten");
+                strcpy(buffer, "Gelieve deze opnieuw aan te sluiten");
             }
             break;
         }

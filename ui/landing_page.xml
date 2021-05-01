@@ -620,7 +620,7 @@ en op "Kalibreer" te drukken.</property>
                 <child>
                   <object class="GtkButton" id="toggle_1">
                     <property name="label" translatable="yes">Optie 1</property>
-                    <property name="width_request">120</property>
+                    <property name="width_request">175</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -639,7 +639,7 @@ en op "Kalibreer" te drukken.</property>
                 <child>
                   <object class="GtkButton" id="toggle_2">
                     <property name="label" translatable="yes">Optie 2</property>
-                    <property name="width_request">120</property>
+                    <property name="width_request">175</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -658,7 +658,7 @@ en op "Kalibreer" te drukken.</property>
                 <child>
                   <object class="GtkButton" id="toggle_3">
                     <property name="label" translatable="yes">Optie 3</property>
-                    <property name="width_request">120</property>
+                    <property name="width_request">175</property>
                     <property name="height_request">80</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>

@@ -386,7 +386,7 @@ extern "C" {
                 x = (Graph::graphCurrent[i].data[j].x - Graph::minX) * scaleX;
                 y = height - (Graph::graphCurrent[i].data[j].y - Graph::minYCurrent) * scaleY1;
                 // diameter punt
-                cairo_set_line_width(cr, 10);
+                cairo_set_line_width(cr, 5);
                 // vorm instellen
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
                 // punt plaatsen
@@ -397,18 +397,22 @@ extern "C" {
             }
             // gelijkaardige stappen doorlopen voor spanning, indien van toepassing
             if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage && Graph::graphVoltage[i].data != nullptr) {
+                unsigned int yRef;
                 for (unsigned int j = 0; j < Graph::nPoints; ++j) {
                     x = (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX;
                     y = height - (Graph::graphVoltage[i].data[j].y - Graph::minYCurrent) * scaleY2;
-                    // diameter punt
-                    cairo_set_line_width(cr, 5);
-                    // vorm instellen
-                    cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
-                    // punt plaatsen
-                    cairo_move_to(cr, x, y); cairo_line_to(cr, x, y);
-                    // kleur plaatsen
-                    gdk_cairo_set_source_color(cr, &colorsV);
-                    cairo_stroke(cr);
+                    yRef = height - (Graph::graphVoltage[0].data[j].y - Graph::minYCurrent) * scaleY2;
+                    if (yRef * 1.5 > y && yRef * .5 < y) {
+                        // diameter punt
+                        cairo_set_line_width(cr, 5);
+                        // vorm instellen
+                        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+                        // punt plaatsen
+                        cairo_move_to(cr, x, y); cairo_line_to(cr, x, y);
+                        // kleur plaatsen
+                        gdk_cairo_set_source_color(cr, &colorsV);
+                        cairo_stroke(cr);
+                    }
                 }                
             }
         }
