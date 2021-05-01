@@ -272,7 +272,7 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
     for (unsigned char i = 0; i < 3; ++i) {
         delete[] Graph::graphCurrent[i].data;
         delete[] Graph::graphVoltage[i].data;
-        Graph::graphCurrent[i].data = new Point[nPoints + 1];
+        Graph::graphCurrent[i].data = new Point[nPoints];
         Graph::graphVoltage[i].data = nullptr;
     }
 
@@ -285,15 +285,14 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
         pinout.second->increaseVoltage();
         baseCurrent = pinout.second->readAverageCurrent(5);
     }
-    UVoltage beginCollectorVoltage = pinout.first->readAverageVoltage(nSamplesPerPoint);
-    UVoltage voltageIncreasePerIteration = (600 - beginCollectorVoltage) / nPoints;
+    UVoltage beginVCE = pinout.first->readAverageVoltage(nSamplesPerPoint) - pinout.third->readAverageVoltage(nSamplesPerPoint);
+    UVoltage voltageIncreasePerIteration = (600 - beginVCE) / nPoints;
     Graph::maxX = 0;
-    Graph::minX = beginCollectorVoltage;
+    Graph::minX = beginVCE;
     Graph::maxYCurrent = 0;
-    unsigned int index = 0;
     MeasureResult collector, emitter;
-    for (int i = 0; i < 600 - beginCollectorVoltage; i += voltageIncreasePerIteration) {
-        pinout.first->setVoltage(beginCollectorVoltage + i);
+    for (unsigned int i = 0; i < nPoints; ++i) {
+        pinout.first->setVoltage(beginVCE + voltageIncreasePerIteration * i);
         baseCurrent = pinout.second->readAverageCurrent(5);
         while (baseCurrent < - 55) {
             pinout.second->decreaseVoltage();
@@ -301,26 +300,24 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
         }
         collector = pinout.first->doFullMeasure(nSamplesPerPoint);
         emitter = pinout.third->doFullMeasure(nSamplesPerPoint);
-        Graph::graphCurrent[0].data[index].x = collector.avgV - emitter.avgV;
-        Graph::graphCurrent[1].data[index].x = collector.minV - emitter.minV;
-        Graph::graphCurrent[2].data[index].x = collector.maxV - emitter.maxV;
+        Graph::graphCurrent[0].data[i].x = collector.avgV - emitter.avgV;
+        Graph::graphCurrent[1].data[i].x = collector.minV - emitter.minV;
+        Graph::graphCurrent[2].data[i].x = collector.maxV - emitter.maxV;
 
-        Graph::graphCurrent[0].data[index].y = - collector.avgA;
-        Graph::graphCurrent[0].data[index].y = - collector.maxA;
-        Graph::graphCurrent[0].data[index].y = - collector.minA;
+        Graph::graphCurrent[0].data[i].y = - collector.avgA;
+        Graph::graphCurrent[0].data[i].y = - collector.maxA;
+        Graph::graphCurrent[0].data[i].y = - collector.minA;
 
-        if (Graph::graphCurrent[0].data[index].y > Graph::maxYCurrent) {
-            Graph::maxYCurrent = Graph::graphCurrent[0].data[index].y;
-        } else if (Graph::graphCurrent[0].data[index].y < Graph::minYCurrent) {
-            Graph::minYCurrent = Graph::graphCurrent[0].data[index].y;
+        if (Graph::graphCurrent[0].data[i].y > Graph::maxYCurrent) {
+            Graph::maxYCurrent = Graph::graphCurrent[0].data[i].y;
+        } else if (Graph::graphCurrent[0].data[i].y < Graph::minYCurrent) {
+            Graph::minYCurrent = Graph::graphCurrent[0].data[i].y;
         }
-        if (Graph::graphCurrent[0].data[index].x > Graph::maxX) {
-            Graph::maxX = Graph::graphCurrent[0].data[index].x;
+        if (Graph::graphCurrent[0].data[i].x > Graph::maxX) {
+            Graph::maxX = Graph::graphCurrent[0].data[i].x;
         }
-
-        ++index;
     }
-    Graph::nPoints = index;
+    Graph::nPoints = nPoints;
     pinout.first->turnOff();
     pinout.second->turnOff();
     pinout.third->turnOff();

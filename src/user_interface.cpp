@@ -364,23 +364,52 @@ extern "C" {
             cairo_line_to(cr, i, 0.99 * height);
             cairo_stroke(cr);
         }
-        // plotten grafieken
-        for (unsigned char i = 0; i < 3; ++i) {
+        // plotten grafieken, eerst gemiddelde waardes in 1 lijn
+        for (unsigned int j = 0; j < Graph::nPoints - 1; ++j) {
+            cairo_line_to(cr, (Graph::graphCurrent[0].data[j].x - Graph::minX) * scaleX, height - (Graph::graphCurrent[0].data[j].y - Graph::minYCurrent) * scaleY1);
+        }
+        gdk_cairo_set_source_rgba(cr, &colorsC[0]);
+        cairo_stroke(cr);
+        if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
             for (unsigned int j = 0; j < Graph::nPoints - 1; ++j) {
-                if (Graph::graphCurrent[i].data[j].x == 0 && Graph::graphCurrent[i].data[j].y == 0)
-                    break;
-                cairo_line_to(cr, (Graph::graphCurrent[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphCurrent[i].data[j].y - Graph::minYCurrent) * scaleY1);
+                cairo_line_to(cr, (Graph::graphVoltage[0].data[j].x - Graph::minX) * scaleX, height - (Graph::graphVoltage[0].data[j].y - Graph::minYVoltage) * scaleY2);
             }
-            gdk_cairo_set_source_rgba(cr, &colorsC[i]);
+            gdk_cairo_set_source_rgba(cr, &colorsV[0]);
             cairo_stroke(cr);
+        }
+        // getransformeerde coordinaten tijdelijk bijhouden van elk punt
+        unsigned int x, y;
+        // vervolg plotten, extrema via punten
+        for (unsigned int i = 1; i < 3; ++i) {
+            for (unsigned int j = 0; j < Graph::nPoints - 1; ++j) {
+                // coordinaten transformeren punt
+                x = (Graph::graphCurrent[i].data[j].x - Graph::minX) * scaleX;
+                y = height - (Graph::graphCurrent[i].data[j].y - Graph::minYCurrent) * scaleY1;
+                // diameter punt
+                cairo_set_line_width(cr, 10);
+                // vorm instellen
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+                // punt plaatsen
+                cairo_move_to(cr, x, y); cairo_line_to(cr, x, y);
+                // kleur plaatsen
+                gdk_cairo_set_source_rgba(cr, &colorsC[i]);
+                cairo_stroke(cr);
+            }
+            // gelijkaardige stappen doorlopen voor spanning, indien van toepassing
             if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
                 for (unsigned int j = 0; j < Graph::nPoints - 1; ++j) {
-                    if (Graph::graphVoltage[i].data[j].x == 0 && Graph::graphVoltage[i].data[j].y == 0)
-                        break;
-                    cairo_line_to(cr, (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX, height - (Graph::graphVoltage[i].data[j].y - Graph::minYVoltage) * scaleY2);
-                }
-                gdk_cairo_set_source_rgba(cr, &colorsV[i]);
-                cairo_stroke(cr);
+                    x = (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX;
+                    y = height - (Graph::graphVoltage[i].data[j].y - Graph::minYCurrent) * scaleY2;
+                    // diameter punt
+                    cairo_set_line_width(cr, 10);
+                    // vorm instellen
+                    cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+                    // punt plaatsen
+                    cairo_move_to(cr, x, y); cairo_line_to(cr, x, y);
+                    // kleur plaatsen
+                    gdk_cairo_set_source_rgba(cr, &colorsV[i]);
+                    cairo_stroke(cr);
+                }                
             }
         }
         return false;
