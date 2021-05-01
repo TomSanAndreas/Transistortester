@@ -370,7 +370,7 @@ extern "C" {
         }
         gdk_cairo_set_source_color(cr, &colorsC);
         cairo_stroke(cr);
-        if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
+        if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage && Graph::graphVoltage[0].data != nullptr) {
             for (unsigned int j = 0; j < Graph::nPoints; ++j) {
                 cairo_line_to(cr, (Graph::graphVoltage[0].data[j].x - Graph::minX) * scaleX, height - (Graph::graphVoltage[0].data[j].y - Graph::minYVoltage) * scaleY2);
             }
@@ -396,7 +396,7 @@ extern "C" {
                 cairo_stroke(cr);
             }
             // gelijkaardige stappen doorlopen voor spanning, indien van toepassing
-            if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage) {
+            if (MeasureProperties::shouldSampleVoltage && GraphContext::data[Graph::graphType].canMeasureVoltage && Graph::graphVoltage[i].data != nullptr) {
                 for (unsigned int j = 0; j < Graph::nPoints; ++j) {
                     x = (Graph::graphVoltage[i].data[j].x - Graph::minX) * scaleX;
                     y = height - (Graph::graphVoltage[i].data[j].y - Graph::minYCurrent) * scaleY2;

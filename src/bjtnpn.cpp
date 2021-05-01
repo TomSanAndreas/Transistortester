@@ -191,9 +191,9 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
         Graph::graphVoltage[0].data[0].x = - basisMeting.avgA;
         Graph::graphVoltage[0].data[0].y = collectorMeting.avgV - emitterMeting.avgV;
         Graph::graphVoltage[1].data[0].x = - basisMeting.minA;
-        Graph::graphVoltage[1].data[0].y = collectorMeting.minV - emitterMeting.maxV;
+        Graph::graphVoltage[1].data[0].y = collectorMeting.minV - emitterMeting.minV;
         Graph::graphVoltage[2].data[0].x = - basisMeting.maxA;
-        Graph::graphVoltage[2].data[0].y = collectorMeting.maxV - emitterMeting.minV;
+        Graph::graphVoltage[2].data[0].y = collectorMeting.maxV - emitterMeting.maxV;
 
         // Graph::minYVoltage = Graph::graphVoltage[0].data[0].y;
         Graph::minYVoltage = 0;
@@ -227,9 +227,9 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
             Graph::graphVoltage[0].data[i].x = - basisMeting.avgA;
             Graph::graphVoltage[0].data[i].y = collectorMeting.avgV - emitterMeting.avgV;
             Graph::graphVoltage[1].data[i].x = - basisMeting.minA;
-            Graph::graphVoltage[1].data[i].y = collectorMeting.minV - emitterMeting.maxV;
+            Graph::graphVoltage[1].data[i].y = collectorMeting.minV - emitterMeting.minV;
             Graph::graphVoltage[2].data[i].x = - basisMeting.maxA;
-            Graph::graphVoltage[2].data[i].y = collectorMeting.maxV - collectorMeting.minV;
+            Graph::graphVoltage[2].data[i].y = collectorMeting.maxV - collectorMeting.maxV;
         }
 
         if (Graph::graphCurrent[0].data[i].x < Graph::minX) {
