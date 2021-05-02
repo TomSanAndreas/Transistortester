@@ -9,14 +9,16 @@ GEBRUIKTE_WIN_INCLUDES=-I include -I include/win -I C:/msys64/mingw64/include/gt
 GEBRUIKTE_RPI_INCLUDES=-I include -I include/rpi -I /usr/include/gtk-3.0 -I /usr/include/gdk-pixbuf-2.0 -I /usr/include/glib-2.0 -I /usr/include/atk-1.0 -I /usr/include/pango-1.0 -I /usr/include/cairo -I /usr/lib/arm-linux-gnueabihf/glib-2.0/include
 GEBRUIKTE_LINUX_INCLUDES=-I include -I include/linux -I /usr/include/gtk-3.0 -I /usr/include/gdk-pixbuf-2.0 -I /usr/include/glib-2.0 -I /usr/include/atk-1.0 -I /usr/include/pango-1.0 -I /usr/include/cairo -I /usr/lib/glib-2.0/include -I /usr/include/harfbuzz #-I /usr/include/glib-2.0
 
+EXTRA_FLAGS=-O3 -Wno-deprecated
+
 rpi: src/*.cpp
 	mkdir -p bin
-	$(GEBRUIKTE_COMPILER) -o bin/$(BINARY_NAAM) src/*.cpp $(GEBRUIKTE_RPI_DEPENDENCIES) $(GEBRUIKTE_RPI_INCLUDES)
+	$(GEBRUIKTE_COMPILER) -o bin/$(BINARY_NAAM) src/*.cpp $(EXTRA_FLAGS) $(GEBRUIKTE_RPI_DEPENDENCIES) $(GEBRUIKTE_RPI_INCLUDES)
 
 win: src/*.cpp
 	mkdir -p bin
-	$(GEBRUIKTE_COMPILER) -o bin/$(BINARY_NAAM) -Wall src/*.cpp $(GEBRUIKTE_WIN_DEPENDENCIES) $(GEBRUIKTE_WIN_INCLUDES)
+	$(GEBRUIKTE_COMPILER) -o bin/$(BINARY_NAAM) -Wall src/*.cpp $(EXTRA_FLAGS) $(GEBRUIKTE_WIN_DEPENDENCIES) $(GEBRUIKTE_WIN_INCLUDES)
 
 linux: src/*.cpp
 	mkdir -p bin
-	$(GEBRUIKTE_COMPILER) -o bin/$(BINARY_NAAM) src/*.cpp $(GEBRUIKTE_LINUX_DEPENDENCIES) $(GEBRUIKTE_LINUX_INCLUDES)
+	$(GEBRUIKTE_COMPILER) -o bin/$(BINARY_NAAM) src/*.cpp $(EXTRA_FLAGS) $(GEBRUIKTE_LINUX_DEPENDENCIES) $(GEBRUIKTE_LINUX_INCLUDES)

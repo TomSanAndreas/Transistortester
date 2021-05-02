@@ -312,8 +312,8 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
         Graph::graphCurrent[2].data[i].x = collector.maxV - emitter.maxV;
 
         Graph::graphCurrent[0].data[i].y = - collector.avgA;
-        Graph::graphCurrent[0].data[i].y = - collector.maxA;
-        Graph::graphCurrent[0].data[i].y = - collector.minA;
+        Graph::graphCurrent[1].data[i].y = - collector.maxA;
+        Graph::graphCurrent[2].data[i].y = - collector.minA;
 
         if (Graph::graphCurrent[0].data[i].y > Graph::maxYCurrent) {
             Graph::maxYCurrent = Graph::graphCurrent[0].data[i].y;
@@ -388,7 +388,7 @@ void BjtNpn::generateVbeIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
         }
         ++index;
     }
-    Graph::nPoints = nPoints;
+    Graph::nPoints = index - 1;
     pinout.first->turnOff();
     pinout.second->turnOff();
     pinout.third->turnOff();
