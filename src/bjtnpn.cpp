@@ -346,20 +346,20 @@ void BjtNpn::generateVbeIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
 
     // alle spanningen laag (niet af!)
     pinout.third->setVoltage(0);
-    pinout.first->setVoltage(0);
-    pinout.second->setVoltage(0);
+    pinout.first->setVoltage(900);
+    pinout.second->setVoltage(400);
     // kort wachten
     sleep_ms(2);
-    // aannemen dat een spanning VBE max is bij 1V om de grootte per stap uit te kunnen bepalen
-    UVoltage voltageStep = 1000 / nPoints;
+    // aannemen dat een spanning VBE max is bij 1V, begonnen bij 400mV om de grootte per stap uit te kunnen bepalen
+    UVoltage voltageStep = 600 / nPoints;
     // meetpunten maken
     MeasureResult base, emitter, collector;
     // elk punt overlopen voor de grafiek
     for (unsigned int i = 0; i < nPoints; ++i) {
         // nieuwe spanning instellen voor VB
-        pinout.second->setVoltage(i * voltageStep);
+        pinout.second->setVoltage(i * voltageStep + 400);
         // VCB is constant, dus VC moet ook zoveel toenemen, met een constante offset (bv hier 0.5 V)
-        pinout.first->setVoltage(i * voltageStep + 500);
+        pinout.first->setVoltage(i * voltageStep + 900);
 
         // meten
         base = pinout.second->doFullMeasure(nSamplesPerPoint);
