@@ -709,6 +709,9 @@ void UserInterface::init(int* argc, char *** argv) {
                                 break;
                             }
                             case (GraphType::VBE_IC): {
+                                ((BjtNpn*) Component::currentComponent)->generateVbeIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0]);
+                                mainWindow.bottomPanel.graphWindow.updateGraph();
+                                mainWindow.bottomPanel.updateButtons();
                                 break;
                             }
                         }

@@ -330,6 +330,64 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
     pinout.third->turnOff();
 }
 
+void BjtNpn::generateVbeIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint) {
+    // oorspronkelijke grafieken worden uit het geheugen gehaald en nieuw geheugen wordt gemaakt
+    for (unsigned char i = 0; i < 3; ++i) {
+        delete[] Graph::graphCurrent[i].data;
+        delete[] Graph::graphVoltage[i].data;
+        Graph::graphCurrent[i].data = new Point[nPoints];
+        Graph::graphVoltage[i].data = nullptr;
+    }
+    // min & max instellen op een startwaarde
+    Graph::minX = 0;
+    Graph::maxX = 0;
+    Graph::minYCurrent = 1000;
+    Graph::maxYCurrent = 0;
+
+    // alle spanningen laag (niet af!)
+    pinout.third->setVoltage(0);
+    pinout.first->setVoltage(0);
+    pinout.second->setVoltage(0);
+    // kort wachten
+    sleep_ms(2);
+    // aannemen dat een spanning VBE max is bij 1V om de grootte per stap uit te kunnen bepalen
+    UVoltage voltageStep = 1000 / nPoints;
+    // meetpunten maken
+    MeasureResult base, emitter, collector;
+    // elk punt overlopen voor de grafiek
+    for (unsigned int i = 0; i < nPoints; ++i) {
+        // nieuwe spanning instellen voor VB
+        pinout.second->setVoltage(i * voltageStep);
+        // VCB is constant, dus VC moet ook zoveel toenemen, met een constante offset (bv hier 0.5 V)
+        pinout.first->setVoltage(i * voltageStep + 500);
+
+        // meten
+        base = pinout.second->doFullMeasure(nSamplesPerPoint);
+        collector = pinout.first->doFullMeasure(nSamplesPerPoint);
+        emitter = pinout.third->doFullMeasure(nSamplesPerPoint);
+        // data opslaan
+        Graph::graphCurrent[0].data[i].x = base.avgV - emitter.avgV;
+        Graph::graphCurrent[1].data[i].x = base.minV - emitter.minV;
+        Graph::graphCurrent[2].data[i].x = base.maxV - emitter.maxV;
+
+        Graph::graphCurrent[0].data[i].y = - collector.avgA;
+        Graph::graphCurrent[1].data[i].y = - collector.minA;
+        Graph::graphCurrent[2].data[i].y = - collector.maxA;
+        if (Graph::graphCurrent[0].data[i].y > Graph::maxYCurrent) {
+            Graph::maxYCurrent = Graph::graphCurrent[0].data[i].y;
+        } else if (Graph::graphCurrent[0].data[i].y < Graph::minYCurrent) {
+            Graph::minYCurrent = Graph::graphCurrent[0].data[i].y;
+        }
+        if (Graph::graphCurrent[0].data[i].x > Graph::maxX) {
+            Graph::maxX = Graph::graphCurrent[0].data[i].x;
+        }
+    }
+    Graph::nPoints = nPoints;
+    pinout.first->turnOff();
+    pinout.second->turnOff();
+    pinout.third->turnOff();
+}
+
 void BjtNpn::getPropertyText(PropertyType property, char* buffer) {
     switch (property) {
         case DESCRIPTION_LINE_1: {
