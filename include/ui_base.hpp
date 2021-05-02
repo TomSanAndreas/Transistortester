@@ -74,7 +74,9 @@ enum PropertyType {
     // symbool naam voor de UI
     SYMBOL_NAME        = 8,
     // component naam voor de UI
-    COMPONENT_NAME     = 9
+    COMPONENT_NAME     = 9,
+    // component naam voor save file
+    TYPE_NAME          = 10
 };
 
 struct Component {

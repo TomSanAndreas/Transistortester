@@ -81,6 +81,10 @@ void Capacitor::getPropertyText(PropertyType property, char* buffer) {
             strcpy(buffer, "Condensator");
             break;
         }
+        case TYPE_NAME: {
+            strcpy(buffer, "CAPACITOR");
+            break;
+        }
         default:
             buffer[0] = '\0';
     }

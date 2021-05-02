@@ -83,6 +83,10 @@ void Resistor::getPropertyText(PropertyType property, char* buffer) {
             strcpy(buffer, "Weerstand");
             break;
         }
+        case TYPE_NAME: {
+            strcpy(buffer, "RESISTOR");
+            break;
+        }
         default:
             buffer[0] = '\0';
     }

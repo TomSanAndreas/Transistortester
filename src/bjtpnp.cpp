@@ -223,6 +223,10 @@ void BjtPnp::getPropertyText(PropertyType property, char* buffer) {
             strcpy(buffer, "Bipolaire transistor (PNP)");
             break;
         }
+        case TYPE_NAME: {
+            strcpy(buffer, "BJT_PNP");
+            break;
+        }
         default:
             buffer[0] = '\0';
     }

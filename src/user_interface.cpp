@@ -1,5 +1,7 @@
 #include "user_interface.hpp"
 #include <thread>
+#include <ctime>
+#include <fstream>
 
 #include "bjtnpn.hpp"
 #include "bjtpnp.hpp"
@@ -16,10 +18,12 @@
 #define UPPER_POINT_LIMIT 200
 #define LOWER_POINT_LIMIT 25
 
+#define CSV_DELIMITER ';'
+
 void destroy();
 void determineType();
 // flags used in the seperate thread
-bool determenRequested = false, measurementRequested = false, programAlive = false, calibrationRequested = false;
+bool determenRequested = false, measurementRequested = false, programAlive = false, calibrationRequested = false, saveRequested = false;
 
 struct CalibrationDialog {
     GtkDialog* self;
@@ -524,6 +528,12 @@ extern "C" {
             colorsV = style->text[GTK_STATE_NORMAL];
         }
     }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void save_signal(GtkWidget* widget, gpointer user_data) {
+        saveRequested = true;
+    }
 }
 
 void determineType() {
@@ -745,6 +755,49 @@ void UserInterface::init(int* argc, char *** argv) {
                 }
                 mainWindow.topPanel.enableButtons();
                 measurementRequested = false;
+            }
+            if (saveRequested) {
+                // knoppen afleggen
+                mainWindow.disableAllButtons();
+                // naam bestand en component bijhouden
+                char buffer[100], subbuffer[50];
+                // bestandsnaam vormen adhv huidige component & tijd
+                // bron: https://www.tutorialspoint.com/cplusplus/cpp_date_time.htm
+                time_t now = time(0);
+                tm* lt = localtime(&now);
+                Component::currentComponent->getPropertyText(PropertyType::TYPE_NAME, subbuffer);
+                sprintf(buffer, "%s_%i-%i-%i_%i:%i:%i.csv", subbuffer, lt->tm_mday, 1 + lt->tm_mon, 1900 + lt->tm_year, lt->tm_hour, lt->tm_min, lt->tm_sec);
+                // bestand maken
+                std::ofstream output(buffer);
+                // eerste regel schrijven
+                output << "TRANSISTORTESTER " << VERSION << CSV_DELIMITER <<
+                "INGO CHIN & TOM WINDELS" << CSV_DELIMITER <<
+                "MEETRESULTATEN " << subbuffer << CSV_DELIMITER <<
+                GraphContext::data[Graph::graphType].graphTitle << CSV_DELIMITER <<
+                CSV_DELIMITER <<
+                "DATUM: " << lt->tm_mday << "/" << 1 + lt->tm_mon << "/" << 1900 + lt->tm_year << '\n';
+                // tweede regel schrijven
+                output << '[' << GraphContext::data[Graph::graphType].xUnit << ']' << CSV_DELIMITER <<
+                "[" << GraphContext::data[Graph::graphType].yUnit1 << ']' << CSV_DELIMITER <<
+                "[" << GraphContext::data[Graph::graphType].xUnit << ']' << CSV_DELIMITER <<
+                "[" << GraphContext::data[Graph::graphType].yUnit1 << ']' << CSV_DELIMITER <<
+                "[" << GraphContext::data[Graph::graphType].xUnit << ']' << CSV_DELIMITER <<
+                "[" << GraphContext::data[Graph::graphType].yUnit1 << ']' << '\n';
+                // data invullen
+                for (unsigned int i = 0; i < Graph::nPoints; ++i) {
+                    output << Graph::graphCurrent[0].data[i].x / GraphContext::data[Graph::graphType].scaleFactorX << CSV_DELIMITER << 
+                    Graph::graphCurrent[0].data[i].y / GraphContext::data[Graph::graphType].scaleFactorY1 << CSV_DELIMITER <<
+                    Graph::graphCurrent[1].data[i].x / GraphContext::data[Graph::graphType].scaleFactorX << CSV_DELIMITER <<
+                    Graph::graphCurrent[1].data[i].y / GraphContext::data[Graph::graphType].scaleFactorY1 << CSV_DELIMITER <<
+                    Graph::graphCurrent[2].data[i].x / GraphContext::data[Graph::graphType].scaleFactorX << CSV_DELIMITER <<
+                    Graph::graphCurrent[2].data[i].y / GraphContext::data[Graph::graphType].scaleFactorY1 << '\n';
+                }
+                // bestand sluiten
+                output.close();
+                // knoppen terug aanleggen
+                mainWindow.topPanel.enableButtons();
+                mainWindow.bottomPanel.updateButtons();
+                saveRequested = false;
             }
             sleep_ms(100);
         }

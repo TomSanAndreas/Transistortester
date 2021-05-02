@@ -108,6 +108,10 @@ void Diode::getPropertyText(PropertyType property, char* buffer) {
             strcpy(buffer, "Diode");
             break;
         }
+        case TYPE_NAME: {
+            strcpy(buffer, "DIODE");
+            break;
+        }
         default:
             buffer[0] = '\0';
     }

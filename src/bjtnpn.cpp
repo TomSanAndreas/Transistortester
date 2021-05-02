@@ -448,6 +448,10 @@ void BjtNpn::getPropertyText(PropertyType property, char* buffer) {
             strcpy(buffer, "Bipolaire transistor (NPN)");
             break;
         }
+        case TYPE_NAME: {
+            strcpy(buffer, "BJT_NPN");
+            break;
+        }
         default:
             buffer[0] = '\0';
     }
