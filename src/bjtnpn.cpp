@@ -295,7 +295,7 @@ void BjtNpn::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
     UVoltage beginVCE = pinout.first->readAverageVoltage(nSamplesPerPoint) - pinout.third->readAverageVoltage(nSamplesPerPoint);
     UVoltage voltageIncreasePerIteration = (600 - beginVCE) / nPoints;
     Graph::maxX = 0;
-    Graph::minX = beginVCE;
+    Graph::minX = 0.5 * beginVCE;
     Graph::maxYCurrent = 0;
     MeasureResult collector, emitter;
     for (unsigned int i = 0; i < nPoints; ++i) {
@@ -339,9 +339,9 @@ void BjtNpn::generateVbeIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
         Graph::graphVoltage[i].data = nullptr;
     }
     // min & max instellen op een startwaarde
-    Graph::minX = 0;
+    Graph::minX = 400;
     Graph::maxX = 0;
-    Graph::minYCurrent = 1000;
+    Graph::minYCurrent = -100;
     Graph::maxYCurrent = 0;
 
     // alle spanningen laag (niet af!)
@@ -355,32 +355,38 @@ void BjtNpn::generateVbeIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
     // meetpunten maken
     MeasureResult base, emitter, collector;
     // elk punt overlopen voor de grafiek
+    unsigned int index = 0;
     for (unsigned int i = 0; i < nPoints; ++i) {
         // nieuwe spanning instellen voor VB
         pinout.second->setVoltage(i * voltageStep + 400);
         // VCB is constant, dus VC moet ook zoveel toenemen, met een constante offset (bv hier 0.5 V)
         pinout.first->setVoltage(i * voltageStep + 900);
-
         // meten
         base = pinout.second->doFullMeasure(nSamplesPerPoint);
         collector = pinout.first->doFullMeasure(nSamplesPerPoint);
         emitter = pinout.third->doFullMeasure(nSamplesPerPoint);
+        // controleren of VBE nu niet lager ligt dan het voorgaande punt (kan voorkomen indien collector stroom zorgt voor daling in spanning over BJT door toename spanning over weerstanden in de kring)
+        // indien dit het geval is, wordt deze iteratie overgeslagen
+        if (index > 0 && Graph::graphCurrent[0].data[index - 1].x > base.avgV - emitter.avgV) {
+            continue;
+        }
         // data opslaan
-        Graph::graphCurrent[0].data[i].x = base.avgV - emitter.avgV;
-        Graph::graphCurrent[1].data[i].x = base.minV - emitter.minV;
-        Graph::graphCurrent[2].data[i].x = base.maxV - emitter.maxV;
+        Graph::graphCurrent[0].data[index].x = base.avgV - emitter.avgV;
+        Graph::graphCurrent[1].data[index].x = base.minV - emitter.minV;
+        Graph::graphCurrent[2].data[index].x = base.maxV - emitter.maxV;
 
-        Graph::graphCurrent[0].data[i].y = - collector.avgA;
-        Graph::graphCurrent[1].data[i].y = - collector.minA;
-        Graph::graphCurrent[2].data[i].y = - collector.maxA;
-        if (Graph::graphCurrent[0].data[i].y > Graph::maxYCurrent) {
-            Graph::maxYCurrent = Graph::graphCurrent[0].data[i].y;
-        } else if (Graph::graphCurrent[0].data[i].y < Graph::minYCurrent) {
-            Graph::minYCurrent = Graph::graphCurrent[0].data[i].y;
+        Graph::graphCurrent[0].data[index].y = - collector.avgA;
+        Graph::graphCurrent[1].data[index].y = - collector.minA;
+        Graph::graphCurrent[2].data[index].y = - collector.maxA;
+        if (Graph::graphCurrent[0].data[index].y > Graph::maxYCurrent) {
+            Graph::maxYCurrent = Graph::graphCurrent[0].data[index].y;
+        } else if (Graph::graphCurrent[0].data[index].y < Graph::minYCurrent) {
+            Graph::minYCurrent = Graph::graphCurrent[0].data[index].y;
         }
-        if (Graph::graphCurrent[0].data[i].x > Graph::maxX) {
-            Graph::maxX = Graph::graphCurrent[0].data[i].x;
+        if (Graph::graphCurrent[0].data[index].x > Graph::maxX) {
+            Graph::maxX = Graph::graphCurrent[0].data[index].x;
         }
+        ++index;
     }
     Graph::nPoints = nPoints;
     pinout.first->turnOff();
