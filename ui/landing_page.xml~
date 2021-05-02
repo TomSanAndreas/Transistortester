@@ -114,6 +114,141 @@ en op "Kalibreer" te drukken.</property>
       <placeholder/>
     </child>
   </object>
+  <object class="GtkDialog" id="help_dialog">
+    <property name="can_focus">False</property>
+    <property name="title" translatable="yes">Transistortester - Help</property>
+    <property name="type_hint">dialog</property>
+    <property name="deletable">False</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can_focus">False</property>
+            <property name="layout_style">end</property>
+            <child>
+              <object class="GtkButton" id="close_help">
+                <property name="label" translatable="yes">Sluiten</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="close_help_signal" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkLabel" id="help_title">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin_start">10</property>
+                <property name="margin_top">10</property>
+                <property name="margin_bottom">10</property>
+                <property name="label" translatable="yes">Transistortester uitleg</property>
+                <attributes>
+                  <attribute name="weight" value="heavy"/>
+                  <attribute name="scale" value="1"/>
+                  <attribute name="size" value="14"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="help_text">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin_start">10</property>
+                <property name="margin_end">10</property>
+                <property name="label" translatable="yes">BELANGRIJK! Eerst dient het toestel gekalibreerd te zijn.
+--
+Nameten BJT NPN of PNP:
+	Stap 1) Sluit de component aan op de DUT-pinnen (volgorde
+                     maakt niet uit)
+	Stap 2) Druk op de startknop. Na enkele seconden zou de
+                     aangesloten component herkend moeten zijn. Dit
+                     kan wat langer duren indien de connectie niet goed is.
+	Stap 3) De component zou nu ondertussen zichtbaar moeten
+                     zijn op het scherm, alsook de gemeten beta-waarden.
+                     Indien er op het scherm staat dat de connectie niet goed
+                     is, kan het interessant zijn om de component opnieuw aan
+                     te sluiten en weer op de startknop te drukken, totdat
+                     dit probleem zich niet meer voordoet.
+	Stap 4) Via de "+"- en "-"-knoppen kunnen verschillende
+                     eigenschappen van de te meten grafieken aangepast
+                     worden. Een hoger aantal samples levert vaak een beter
+                     resultaat op, maar duurt ook weer wat langer. Er wordt
+                     aangeraden 50 meetpunten te nemen met 10 samples per
+                     punt. Hier is het ook mogelijk op te geven of de spanning
+                     ook moet gesampled worden. Dit is enkel van toepassing
+                     bij de "IC en VCE i.f.v. IB"-grafiek.
+	Stap 5) Via de beschikbare knoppen links is het mogelijk een
+                     bepaalde karakteristiek na te meten. Gedurende het
+                     meten mag de component niet los worden gemaakt, na
+                     het meten mag het wel. Eenmaal het meten klaar is, wordt
+                     de grafiek automatisch weergegeven. De vloeiende lijn is
+                     het gemiddelde van de samples, terwijl de bolletjes de
+                     extrema zijn tijdens het meten van een punt.
+	Stap 6) Indien gewenst, laat de "Opslaan naar CSV"-knop toe de
+                     gemeten data op te slaan naar een CSV-bestand in de
+                     huidige werkmap.
+--
+Nameten weerstand of diode:
+BELANGRIJK! Niet alle weerstanden en diodes kunnen correct
+                        worden herkend! Hiervoor werd dit apparaat ook
+                        niet in de eerste plaats ontworpen.
+	Stap 1) Sluit de component aan op de DUT-pinnen (volgorde
+	             maakt niet uit)
+	Stap 2) Druk op de startknop. Na enkele seconden zou de
+                     aangesloten component herkend moeten zijn. Indien
+                     dit niet het geval is, kunt u proberen de component
+                     opnieuw aan te sluiten en het opnieuw te proberen.
+                     De eigenschappen van de component
+                     (weerstandswaarde, spanningsval diode, etc) zouden
+                     zichtbaar moeten zijn nadat de component werd
+                     herkend.</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <child type="titlebar">
+      <placeholder/>
+    </child>
+  </object>
   <object class="GtkWindow" id="main_window">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Transistortester</property>
@@ -571,17 +706,49 @@ en op "Kalibreer" te drukken.</property>
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="help">
-                <property name="label" translatable="yes">Uitleg</property>
-                <property name="width_request">130</property>
-                <property name="height_request">80</property>
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can_focus">False</property>
                 <property name="halign">center</property>
                 <property name="valign">center</property>
-                <property name="margin_start">15</property>
-                <property name="margin_end">15</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkButton" id="help">
+                    <property name="label" translatable="yes">Uitleg</property>
+                    <property name="width_request">130</property>
+                    <property name="height_request">80</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="margin_bottom">5</property>
+                    <signal name="clicked" handler="help_signal" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="save">
+                    <property name="label" translatable="yes">Opslaan naar CSV</property>
+                    <property name="width_request">130</property>
+                    <property name="height_request">80</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <signal name="clicked" handler="save_signal" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>

@@ -31,6 +31,12 @@ struct CalibrationDialog {
     GtkProgressBar* progress_bar;
 };
 
+struct HelpDialog {
+    GtkDialog* self;
+    GtkButton* close;
+    GtkLabel* title;
+};
+
 struct MeasureProperties {
     static GtkLabel* description[3];
     static const char* descriptionNames[];
@@ -289,11 +295,27 @@ struct TopPanel {
     ComponentProperties properties;
     ComponentLayout component;
     static GtkButton* help;
+    static GtkButton* save;
     static void disableButtons() {
         // main thread
         g_idle_add(G_SOURCE_FUNC(+[]() {
             gtk_widget_set_sensitive((GtkWidget*) startButton, FALSE);
             gtk_widget_set_sensitive((GtkWidget*) help, FALSE);
+            gtk_widget_set_sensitive((GtkWidget*) save, FALSE);
+            return FALSE;
+        }), NULL);
+    }
+    static void disableSaveKey() {
+        // main thread
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            gtk_widget_set_sensitive((GtkWidget*) save, FALSE);
+            return FALSE;
+        }), NULL);
+    }
+    static void enableSaveKey() {
+        // main thread
+        g_idle_add(G_SOURCE_FUNC(+[]() {
+            gtk_widget_set_sensitive((GtkWidget*) save, TRUE);
             return FALSE;
         }), NULL);
     }
@@ -302,12 +324,13 @@ struct TopPanel {
         g_idle_add(G_SOURCE_FUNC(+[]() {
             gtk_widget_set_sensitive((GtkWidget*) startButton, TRUE);
             gtk_widget_set_sensitive((GtkWidget*) help, TRUE);
+            gtk_widget_set_sensitive((GtkWidget*) save, TRUE);
             return FALSE;
         }), NULL);
     }
 };
 
-GtkButton* TopPanel::startButton,* TopPanel::help;
+GtkButton* TopPanel::startButton,* TopPanel::help,* TopPanel::save;
 
 struct MainWindow {
     TopPanel topPanel;
@@ -321,6 +344,7 @@ struct MainWindow {
 GdkColor colorsC {.red = 43690, .green = 65535, .blue = 43690};
 GdkColor colorsV {.red = 43690, .green = 43690, .blue = 65535};
 CalibrationDialog calibrationDialog;
+HelpDialog helpDialog;
 
 unsigned int segment;
 double segmentProgress;
@@ -531,6 +555,18 @@ extern "C" {
     #ifdef WINDOWS
     G_MODULE_EXPORT
     #endif
+    void help_signal(GtkWidget* widget, gpointer user_data) {
+        gtk_widget_show((GtkWidget*) helpDialog.self);
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
+    void close_help_signal(GtkWidget* widget, gpointer user_data) {
+        gtk_widget_hide((GtkWidget*) helpDialog.self);
+    }
+    #ifdef WINDOWS
+    G_MODULE_EXPORT
+    #endif
     void save_signal(GtkWidget* widget, gpointer user_data) {
         saveRequested = true;
     }
@@ -618,6 +654,7 @@ void UserInterface::init(int* argc, char *** argv) {
     mainWindow.topPanel.component.symbol = GTK_IMAGE(gtk_builder_get_object(builder, "component_symbol"));
 
     mainWindow.topPanel.help = GTK_BUTTON(gtk_builder_get_object(builder, "help"));
+    mainWindow.topPanel.save = GTK_BUTTON(gtk_builder_get_object(builder, "save"));
 
     // set bottom panel pointers
     mainWindow.bottomPanel.toggle1 = GTK_BUTTON(gtk_builder_get_object(builder, "toggle_1"));
@@ -647,9 +684,19 @@ void UserInterface::init(int* argc, char *** argv) {
     calibrationDialog.dialog_close_button = GTK_BUTTON(gtk_builder_get_object(builder, "close_dialog"));
     calibrationDialog.start_button = GTK_BUTTON(gtk_builder_get_object(builder, "calibrate"));
 
+    helpDialog.self = GTK_DIALOG(gtk_builder_get_object(builder, "help_dialog"));
+    helpDialog.close = GTK_BUTTON(gtk_builder_get_object(builder, "close_help"));
+    helpDialog.title = GTK_LABEL(gtk_builder_get_object(builder, "help_title"));
+
+    {
+        char titleBuffer[50];
+        sprintf(titleBuffer, "Transistortester uitleg - %s", VERSION);
+        gtk_label_set_text(helpDialog.title, titleBuffer);
+    }
+    
     // make it so the close button cant be pressed without calibrating first
     gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialog_close_button, FALSE);
-
+    mainWindow.topPanel.disableSaveKey();
     mainWindow.disableAllButtons();
     programAlive = true;
     backgroundThread = std::thread([]() {
@@ -686,6 +733,7 @@ void UserInterface::init(int* argc, char *** argv) {
                 Probe::probe[2].calibrate(updateProgress, &segmentProgress);
                 g_idle_add(G_SOURCE_FUNC(+[](){gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Klaar!"); gtk_progress_bar_set_fraction(calibrationDialog.progress_bar, 1.0); gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialog_close_button, TRUE); return FALSE;}), NULL);
                 mainWindow.topPanel.enableButtons();
+                mainWindow.topPanel.disableSaveKey();
                 calibrationRequested = false;
             }
             if (determenRequested) {
@@ -698,6 +746,7 @@ void UserInterface::init(int* argc, char *** argv) {
                 }
                 mainWindow.topPanel.properties.update();
                 mainWindow.topPanel.enableButtons();
+                mainWindow.topPanel.disableSaveKey();
                 determenRequested = false;
             }
             if (measurementRequested) {
@@ -708,23 +757,20 @@ void UserInterface::init(int* argc, char *** argv) {
                         switch (Graph::graphType) {
                             case (GraphType::IB_IC): {
                                 ((BjtNpn*) Component::currentComponent)->generateIbIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0], mainWindow.topPanel.settings.shouldSampleVoltage);
-                                mainWindow.bottomPanel.graphWindow.updateGraph();
-                                mainWindow.bottomPanel.updateButtons();
                                 break;
                             }
                             case (GraphType::VCE_IC): {
                                 ((BjtNpn*) Component::currentComponent)->generateVceIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0]);
-                                mainWindow.bottomPanel.graphWindow.updateGraph();
-                                mainWindow.bottomPanel.updateButtons();
                                 break;
                             }
                             case (GraphType::VBE_IC): {
                                 ((BjtNpn*) Component::currentComponent)->generateVbeIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0]);
-                                mainWindow.bottomPanel.graphWindow.updateGraph();
-                                mainWindow.bottomPanel.updateButtons();
                                 break;
                             }
-                        }
+                        }                                
+                        mainWindow.bottomPanel.graphWindow.updateGraph();
+                        mainWindow.bottomPanel.updateButtons();
+                        mainWindow.topPanel.enableSaveKey();
                         break;
                     }
                     case BJT_PNP: {
@@ -791,6 +837,25 @@ void UserInterface::init(int* argc, char *** argv) {
                     Graph::graphCurrent[1].data[i].y / GraphContext::data[Graph::graphType].scaleFactorY1 << CSV_DELIMITER <<
                     Graph::graphCurrent[2].data[i].x / GraphContext::data[Graph::graphType].scaleFactorX << CSV_DELIMITER <<
                     Graph::graphCurrent[2].data[i].y / GraphContext::data[Graph::graphType].scaleFactorY1 << '\n';
+                }
+                // controleren indien er ook spanning gemeten werd
+                if (GraphContext::data[Graph::graphType].canMeasureVoltage && Graph::graphVoltage[0].data != nullptr) {
+                    // opnieuw units uitschrijven, nu voor andere grafiek
+                    output << '[' << GraphContext::data[Graph::graphType].xUnit << ']' << CSV_DELIMITER <<
+                    "[" << GraphContext::data[Graph::graphType].yUnit2 << ']' << CSV_DELIMITER <<
+                    "[" << GraphContext::data[Graph::graphType].xUnit << ']' << CSV_DELIMITER <<
+                    "[" << GraphContext::data[Graph::graphType].yUnit2 << ']' << CSV_DELIMITER <<
+                    "[" << GraphContext::data[Graph::graphType].xUnit << ']' << CSV_DELIMITER <<
+                    "[" << GraphContext::data[Graph::graphType].yUnit2 << ']' << '\n';
+                    // data invullen
+                    for (unsigned int i = 0; i < Graph::nPoints; ++i) {
+                        output << Graph::graphVoltage[0].data[i].x / GraphContext::data[Graph::graphType].scaleFactorX << CSV_DELIMITER << 
+                        Graph::graphVoltage[0].data[i].y / GraphContext::data[Graph::graphType].scaleFactorY2 << CSV_DELIMITER <<
+                        Graph::graphVoltage[1].data[i].x / GraphContext::data[Graph::graphType].scaleFactorX << CSV_DELIMITER <<
+                        Graph::graphVoltage[1].data[i].y / GraphContext::data[Graph::graphType].scaleFactorY2 << CSV_DELIMITER <<
+                        Graph::graphVoltage[2].data[i].x / GraphContext::data[Graph::graphType].scaleFactorX << CSV_DELIMITER <<
+                        Graph::graphVoltage[2].data[i].y / GraphContext::data[Graph::graphType].scaleFactorY2 << '\n';
+                    }
                 }
                 // bestand sluiten
                 output.close();
