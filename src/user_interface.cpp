@@ -774,9 +774,23 @@ void UserInterface::init(int* argc, char *** argv) {
                         break;
                     }
                     case BJT_PNP: {
-                        ((BjtPnp*) Component::currentComponent)->generateIbIcGraph(50, 10);
+                        switch (Graph::graphType) {
+                            case (GraphType::IB_IC): {
+                                ((BjtPnp*) Component::currentComponent)->generateIbIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0], mainWindow.topPanel.settings.shouldSampleVoltage);
+                                break;
+                            }
+                            case (GraphType::VCE_IC): {
+                                ((BjtPnp*) Component::currentComponent)->generateVceIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0]);
+                                break;
+                            }
+                            case (GraphType::VBE_IC): {
+                                ((BjtPnp*) Component::currentComponent)->generateVbeIcGraph(mainWindow.topPanel.settings.currentValueInt[1], mainWindow.topPanel.settings.currentValueInt[0]);
+                                break;
+                            }
+                        }                                
                         mainWindow.bottomPanel.graphWindow.updateGraph();
                         mainWindow.bottomPanel.updateButtons();
+                        mainWindow.topPanel.enableSaveKey();
                         break;
                     }
                     case MOSFET_NMOS: {

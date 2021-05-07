@@ -89,7 +89,7 @@ void BjtNpn::setLowestVBE() {
 
 void BjtNpn::measure() {
     unsigned int attempts = 0;
-do_measure:
+do_measure_npn:
     // eerst wordt VBE zo klein mogelijk gezet:
     setLowestVBE();
     // korte delay
@@ -123,7 +123,7 @@ do_measure:
     if (!(0.5 * averageBeta < minBeta && 1.5 * averageBeta > maxBeta) && attempts < 5) {
         connectionStatus = BadConnection;
         ++attempts;
-        goto do_measure;
+        goto do_measure_npn;
     } else if (attempts == 5) {
         connectionStatus = UnusableConnection;
     }
@@ -201,7 +201,7 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     }
     UVoltage VCE = collectorMeting.avgV - emitterMeting.avgV;
     unsigned int i = 1;
-    // FIXME(zoek het eindpunt (waar collectorcurrent 8000µA is), en deel de beginspanning VBE tot eindspanning VBE gelijk in voor nPoints)
+    
     baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
     collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
     while (collectorCurrent > -8000 && i < nPoints) {
@@ -247,9 +247,6 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
         }
 
         if (sampleVoltage) {
-            // if (Graph::graphVoltage[0].data[i].y < Graph::minYVoltage) {
-            //     Graph::minYVoltage = Graph::graphVoltage[0].data[i].y;
-            // }
             if (1.5 * Graph::graphVoltage[0].data[i].y > Graph::maxYVoltage) {
                 Graph::maxYVoltage = 1.5 * Graph::graphVoltage[0].data[i].y;
             }

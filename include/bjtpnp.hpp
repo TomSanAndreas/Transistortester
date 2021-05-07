@@ -10,8 +10,10 @@ struct BjtPnp : Component {
     // gebruikt om te kijken of de DUT een PNP transistor is
     static DUTInformation checkIfPNP();
 
-    // grafiek genereren met de gegeven eigenschappen
-    void generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint);
+    // genereren grafieken
+    void generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint, bool sampleVoltage);
+    void generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint);
+    void generateVbeIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint);
     // eigenschappen in tekst uitdrukken
     void getPropertyText(PropertyType property, char* buffer);
     // pinout: first - collector, second - base, third - emitter
@@ -23,4 +25,5 @@ struct BjtPnp : Component {
         void setLowestVBE();
         // bepaalt basiseigenschappen van de transistor
         void measure();
+        ConnectionStatus connectionStatus = Connected;
 };
