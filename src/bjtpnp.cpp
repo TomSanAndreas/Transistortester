@@ -81,7 +81,7 @@ void BjtPnp::setLowestVBE() {
     Current collectorCurrent = pinout.first->readCurrent();
     // PNP heeft stroom uit de collector, dus wordt deze positief gemeten
     // VBE verlagen door B te laten stijgen, dit tot collectorcurrent klein genoeg is
-    while (collectorCurrent > 1 && pinout.second->currentVoltageSet < 800) {
+    while (collectorCurrent > 10 && pinout.second->currentVoltageSet < 800) {
         pinout.second->increaseVoltage();
         collectorCurrent = pinout.first->readAverageCurrent(25);
     }
