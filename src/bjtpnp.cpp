@@ -154,7 +154,7 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     Current baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
     Current collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
 
-    while (collectorCurrent > 0 && collectorCurrent < 7000 && baseCurrent < 5000) {
+    while (collectorCurrent > 0 && collectorCurrent < 5000 && baseCurrent < 3000) {
         if (collectorCurrent < 3000 && baseCurrent < 1000) {
             pinout.second->setVoltage(pinout.second->currentVoltageSet - 20);
         } else {
@@ -165,7 +165,7 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     }
 
     UVoltage highestBaseVoltage;
-    if (collectorCurrent > 0) {
+    if (collectorCurrent < 0) {
         highestBaseVoltage = pinout.second->currentVoltageSet + 10;
     } else {
         highestBaseVoltage = pinout.second->currentVoltageSet;
