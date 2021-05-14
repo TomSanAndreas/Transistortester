@@ -154,7 +154,7 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     Current baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
     Current collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
 
-    while (collectorCurrent > 0 && collectorCurrent < 5000 && baseCurrent < 300) {
+    while (collectorCurrent > 0 && collectorCurrent < 5000 && baseCurrent < 300 && pinout.second->currentVoltageSet > 150) {
         if (collectorCurrent < 1000 && baseCurrent < 50) {
             pinout.second->setVoltage(pinout.second->currentVoltageSet - 20);
         } else {
@@ -210,7 +210,7 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     baseCurrent = basisMeting.avgA;
     collectorCurrent = collectorMeting.avgA;
     while (collectorCurrent > 0 && collectorCurrent < 8000 && i < nPoints) {
-        pinout.second->setVoltage((i * (highestBaseVoltage - lowestBaseVoltage) / nPoints + lowestBaseVoltage));
+        pinout.second->setVoltage((((int) i) * (highestBaseVoltage - lowestBaseVoltage) / ((int) nPoints) + lowestBaseVoltage));
         while (!ALMOSTEQUAL(VCE, emitterMeting.avgV - collectorMeting.avgV, 0.05) && pinout.third->currentVoltageSet < 4000) {
             pinout.third->increaseVoltage();
             collectorMeting = pinout.first->doFullMeasure(3);
@@ -220,6 +220,14 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
         basisMeting = pinout.second->doFullMeasure(nSamplesPerPoint);
         collectorMeting = pinout.first->doFullMeasure(nSamplesPerPoint);
         emitterMeting = pinout.third->doFullMeasure(nSamplesPerPoint);
+
+        baseCurrent = basisMeting.avgA;
+        collectorCurrent = collectorMeting.avgA;
+
+        if (collectorCurrent < 0) {
+            --i;
+            break;
+        }
 
         Graph::graphCurrent[0].data[i].x = basisMeting.avgA;
         Graph::graphCurrent[0].data[i].y = collectorMeting.avgA;
@@ -257,8 +265,6 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
             }
         }
         ++i;
-        baseCurrent = basisMeting.avgA;
-        collectorCurrent = collectorMeting.avgA;
     }
     if (i != nPoints) {
         for (unsigned int j = 0; j < 3; ++j) {
