@@ -154,22 +154,24 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     Current baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
     Current collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
 
-    while (collectorCurrent > 0 && collectorCurrent < 5000 && baseCurrent < 300 && pinout.second->currentVoltageSet > 150) {
-        if (collectorCurrent < 1000 && baseCurrent < 50) {
-            pinout.second->setVoltage(pinout.second->currentVoltageSet - 20);
-        } else {
-            pinout.second->decreaseVoltage();
-        }
-        baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
-        collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
-    }
+    // while (collectorCurrent > 0 && collectorCurrent < 5000 && baseCurrent < 300 && pinout.second->currentVoltageSet > 150) {
+    //     if (collectorCurrent < 1000 && baseCurrent < 50) {
+    //         pinout.second->setVoltage(pinout.second->currentVoltageSet - 20);
+    //     } else {
+    //         pinout.second->decreaseVoltage();
+    //     }
+    //     baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
+    //     collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
+    // }
 
-    Voltage highestBaseVoltage;
-    if (collectorCurrent < 0) {
-        highestBaseVoltage = pinout.second->currentVoltageSet + 10;
-    } else {
-        highestBaseVoltage = pinout.second->currentVoltageSet;
-    }
+    // Voltage highestBaseVoltage;
+    // if (collectorCurrent < 0) {
+    //     highestBaseVoltage = pinout.second->currentVoltageSet + 10;
+    // } else {
+    //     highestBaseVoltage = pinout.second->currentVoltageSet;
+    // }
+
+    Voltage highestBaseVoltage = 150;
 
     pinout.second->setVoltage(lowestBaseVoltage);
 
@@ -283,11 +285,123 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
 }
 
 void BjtPnp::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint) {
-    //TODO
+    // oorspronkelijke grafieken worden uit het geheugen gehaald en nieuw geheugen wordt gemaakt
+    for (unsigned char i = 0; i < 3; ++i) {
+        delete[] Graph::graphCurrent[i].data;
+        delete[] Graph::graphVoltage[i].data;
+        Graph::graphCurrent[i].data = new Point[nPoints];
+        Graph::graphVoltage[i].data = nullptr;
+    }
+
+    pinout.third->setVoltage(1000);
+    pinout.first->setVoltage(950);
+    pinout.second->setVoltage(400);
+
+    Current baseCurrent = pinout.second->readAverageCurrent(5);
+    while (baseCurrent < 50) {
+        pinout.second->increaseVoltage();
+        baseCurrent = pinout.second->readAverageCurrent(5);
+    }
+    UVoltage beginVCE = pinout.third->readAverageVoltage(nSamplesPerPoint) - pinout.first->readAverageVoltage(nSamplesPerPoint);
+    UVoltage voltageDecreasePerIteration = (600 - beginVCE) / nPoints;
+    Graph::maxX = 0;
+    Graph::minX = 0.5 * beginVCE;
+    Graph::maxYCurrent = 0;
+    MeasureResult collector, emitter;
+    for (unsigned int i = 0; i < nPoints; ++i) {
+        pinout.first->setVoltage(beginVCE - voltageDecreasePerIteration * i);
+        baseCurrent = pinout.second->readAverageCurrent(5);
+        while (baseCurrent > 55) {
+            pinout.second->increaseVoltage();
+            baseCurrent = pinout.second->readAverageCurrent(5);
+        }
+        collector = pinout.first->doFullMeasure(nSamplesPerPoint);
+        emitter = pinout.third->doFullMeasure(nSamplesPerPoint);
+        Graph::graphCurrent[0].data[i].x = emitter.avgV - collector.avgV;
+        Graph::graphCurrent[1].data[i].x = emitter.minV - collector.minV;
+        Graph::graphCurrent[2].data[i].x = emitter.maxV - collector.maxV;
+
+        Graph::graphCurrent[0].data[i].y = collector.avgA;
+        Graph::graphCurrent[1].data[i].y = collector.maxA;
+        Graph::graphCurrent[2].data[i].y = collector.minA;
+
+        if (Graph::graphCurrent[0].data[i].y > Graph::maxYCurrent) {
+            Graph::maxYCurrent = Graph::graphCurrent[0].data[i].y;
+        } else if (Graph::graphCurrent[0].data[i].y < Graph::minYCurrent) {
+            Graph::minYCurrent = Graph::graphCurrent[0].data[i].y;
+        }
+        if (Graph::graphCurrent[0].data[i].x > Graph::maxX) {
+            Graph::maxX = Graph::graphCurrent[0].data[i].x;
+        }
+    }
+    Graph::nPoints = nPoints;
+    pinout.first->turnOff();
+    pinout.second->turnOff();
+    pinout.third->turnOff();
 }
 
 void BjtPnp::generateVbeIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoint) {
-    //TODO
+    // oorspronkelijke grafieken worden uit het geheugen gehaald en nieuw geheugen wordt gemaakt
+    for (unsigned char i = 0; i < 3; ++i) {
+        delete[] Graph::graphCurrent[i].data;
+        delete[] Graph::graphVoltage[i].data;
+        Graph::graphCurrent[i].data = new Point[nPoints];
+        Graph::graphVoltage[i].data = nullptr;
+    }
+    // min & max instellen op een startwaarde
+    Graph::minX = 400;
+    Graph::maxX = 0;
+    Graph::minYCurrent = -100;
+    Graph::maxYCurrent = 0;
+
+    // alle spanningen laag (niet af!)
+    pinout.third->setVoltage(1000);
+    pinout.first->setVoltage(400);
+    pinout.second->setVoltage(600);
+    // kort wachten
+    sleep_ms(2);
+    // aannemen dat een spanning VBE max is bij .8V, begonnen bij 400mV (1-0.600) om de grootte per stap uit te kunnen bepalen
+    Voltage voltageStep = 400 / nPoints;
+    // meetpunten maken
+    MeasureResult base, emitter, collector;
+    // elk punt overlopen voor de grafiek
+    unsigned int index = 0;
+    for (unsigned int i = 0; i < nPoints; ++i) {
+        // nieuwe spanning instellen voor VB
+        pinout.second->setVoltage(600 - (((int) i) * voltageStep));
+        // VCB is constant, dus VC moet ook zoveel afnemen, met een constante offset
+        pinout.first->setVoltage(400 - (((int) i) * voltageStep));
+        // meten
+        base = pinout.second->doFullMeasure(nSamplesPerPoint);
+        collector = pinout.first->doFullMeasure(nSamplesPerPoint);
+        emitter = pinout.third->doFullMeasure(nSamplesPerPoint);
+        // controleren of VBE nu niet lager ligt dan het voorgaande punt (kan voorkomen indien collector stroom zorgt voor daling in spanning over BJT door toename spanning over weerstanden in de kring)
+        // indien dit het geval is, wordt deze iteratie overgeslagen
+        if (index > 0 && Graph::graphCurrent[0].data[index - 1].x > base.avgV - emitter.avgV) {
+            continue;
+        }
+        // data opslaan
+        Graph::graphCurrent[0].data[index].x = emitter.avgV - base.avgV;
+        Graph::graphCurrent[1].data[index].x = emitter.minV - base.minV;
+        Graph::graphCurrent[2].data[index].x = emitter.maxV - base.maxV;
+
+        Graph::graphCurrent[0].data[index].y = collector.avgA;
+        Graph::graphCurrent[1].data[index].y = collector.minA;
+        Graph::graphCurrent[2].data[index].y = collector.maxA;
+        if (Graph::graphCurrent[0].data[index].y > Graph::maxYCurrent) {
+            Graph::maxYCurrent = Graph::graphCurrent[0].data[index].y;
+        } else if (Graph::graphCurrent[0].data[index].y < Graph::minYCurrent) {
+            Graph::minYCurrent = Graph::graphCurrent[0].data[index].y;
+        }
+        if (Graph::graphCurrent[0].data[index].x > Graph::maxX) {
+            Graph::maxX = Graph::graphCurrent[0].data[index].x;
+        }
+        ++index;
+    }
+    Graph::nPoints = index - 1;
+    pinout.first->turnOff();
+    pinout.second->turnOff();
+    pinout.third->turnOff();
 }
 
 void BjtPnp::getPropertyText(PropertyType property, char* buffer) {
