@@ -120,11 +120,11 @@ do_measure_npn:
     }
     averageBeta /= nMeasures;
     // check if accurate enough, if not, measure again
-    if (!(0.5 * averageBeta < minBeta && 1.5 * averageBeta > maxBeta) && attempts < 5) {
+    if (!(0.5 * averageBeta < minBeta && 1.5 * averageBeta > maxBeta) && attempts < 3) {
         connectionStatus = BadConnection;
         ++attempts;
         goto do_measure_npn;
-    } else if (attempts == 5) {
+    } else if (attempts == 3) {
         connectionStatus = UnusableConnection;
     }
 
@@ -207,9 +207,9 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     UVoltage VCE = collectorMeting.avgV - emitterMeting.avgV;
     unsigned int i = 1;
     
-    baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
-    collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
-    while (collectorCurrent > -8000 && i < nPoints) {
+    baseCurrent = basisMeting.avgA;
+    collectorCurrent = collectorMeting.avgA;
+    while (collectorCurrent < 0 && collectorCurrent > -8000 && i < nPoints) {
         pinout.second->setVoltage((i * (highestBaseVoltage - lowestBaseVoltage) / nPoints + lowestBaseVoltage));
         while (!ALMOSTEQUAL(VCE, collectorMeting.avgV - emitterMeting.avgV, 0.05) && pinout.first->currentVoltageSet < 4000) {
             pinout.first->increaseVoltage();

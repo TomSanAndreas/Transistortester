@@ -120,11 +120,11 @@ do_measure_pnp:
     }
     averageBeta /= nMeasures;
     // check if accurate enough, if not, measure again
-    if (!(0.5 * averageBeta < minBeta && 1.5 * averageBeta > maxBeta) && attempts < 5) {
+    if (!(0.5 * averageBeta < minBeta && 1.5 * averageBeta > maxBeta) && attempts < 3) {
         connectionStatus = BadConnection;
         ++attempts;
         goto do_measure_pnp;
-    } else if (attempts == 5) {
+    } else if (attempts == 3) {
         connectionStatus = UnusableConnection;
     }
 
@@ -147,7 +147,7 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     }
     // VBE wordt zo klein mogelijk gezet
     setLowestVBE();
-    UVoltage lowestBaseVoltage = pinout.second->currentVoltageSet;
+    Voltage lowestBaseVoltage = pinout.second->currentVoltageSet;
     // vanaf hier kan de verhouding IB <-> IC gemeten worden, totdat de basisstroom of collectorstroom te groot is
     // om zo te weten met hoeveel de basisspanning moet toenemen voor elk punt
 
@@ -164,7 +164,7 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
         collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
     }
 
-    UVoltage highestBaseVoltage;
+    Voltage highestBaseVoltage;
     if (collectorCurrent < 0) {
         highestBaseVoltage = pinout.second->currentVoltageSet + 10;
     } else {
@@ -207,9 +207,9 @@ void BjtPnp::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
     UVoltage VCE = emitterMeting.avgV - collectorMeting.avgV;
     unsigned int i = 1;
     
-    baseCurrent = pinout.second->readAverageCurrent(nSamplesPerPoint);
-    collectorCurrent = pinout.first->readAverageCurrent(nSamplesPerPoint);
-    while (collectorCurrent < 8000 && i < nPoints) {
+    baseCurrent = basisMeting.avgA;
+    collectorCurrent = collectorMeting.avgA;
+    while (collectorCurrent > 0 && collectorCurrent < 8000 && i < nPoints) {
         pinout.second->setVoltage((i * (highestBaseVoltage - lowestBaseVoltage) / nPoints + lowestBaseVoltage));
         while (!ALMOSTEQUAL(VCE, emitterMeting.avgV - collectorMeting.avgV, 0.05) && pinout.third->currentVoltageSet < 4000) {
             pinout.third->increaseVoltage();
