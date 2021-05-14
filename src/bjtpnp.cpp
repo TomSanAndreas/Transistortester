@@ -96,21 +96,21 @@ do_measure_pnp:
     sleep_ms(1);
     // nameten
     minVbeVoltage = (((double) pinout.second->readAverageVoltage(10)) - pinout.third->readAverageVoltage(10)) / 1000;
-    // beta kan bepaald worden via een gemiddelde van een eerste 5 meetpunten (er wordt veronderstelt dat er nog geen teken van saturatie is dan), na een kleine toename in spanning (zodat de transistor zeker ook meetbaar geleid)
     pinout.second->setVoltage(pinout.second->currentVoltageSet - 25);
     sleep_ms(1);
-    minBeta = 1000;        
-    maxBeta = 0;        
+    minBeta = 1000;
+    maxBeta = 0;
     averageBeta = 0;
     double currentBeta;
-    unsigned int nMeasures = 50;
-    for (unsigned int i = 0; i < 50; ++i) {
+    unsigned int nMeasures = 20;
+    for (unsigned int i = 0; i < 20; ++i) {
         pinout.second->decreaseVoltage();
         currentBeta = ((double) pinout.first->readAverageCurrent(10)) / pinout.second->readAverageCurrent(10);
         if (currentBeta > 0) {
             if (currentBeta > maxBeta) {
                 maxBeta = currentBeta;
-            } else if (currentBeta < minBeta) {
+            }
+            if (currentBeta < minBeta) {
                 minBeta = currentBeta;
             }
             averageBeta += currentBeta;
