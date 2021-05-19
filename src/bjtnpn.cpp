@@ -369,6 +369,10 @@ void BjtNpn::generateVbeIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
         if (index > 0 && Graph::graphCurrent[0].data[index - 1].x > base.avgV - emitter.avgV) {
             continue;
         }
+        // controleren of de stroom nog niet is omgeslaan, indien dit het geval is, is er een maxima bereikt, en mag er gestopt worden met meten
+        if (index > 10 && collector.avgA > 0) {
+            break;
+        }
         // data opslaan
         Graph::graphCurrent[0].data[index].x = base.avgV - emitter.avgV;
         Graph::graphCurrent[1].data[index].x = base.minV - emitter.minV;

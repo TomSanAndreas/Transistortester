@@ -282,14 +282,14 @@ void BjtPnp::generateVceIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
         pinout.second->increaseVoltage();
         baseCurrent = pinout.second->readAverageCurrent(5);
     }
-    UVoltage beginVCE = pinout.third->readAverageVoltage(nSamplesPerPoint) - pinout.first->readAverageVoltage(nSamplesPerPoint);
-    UVoltage voltageDecreasePerIteration = (600 - beginVCE) / nPoints;
+    Voltage beginVCE = pinout.first->readAverageVoltage(nSamplesPerPoint) - pinout.third->readAverageVoltage(nSamplesPerPoint);
+    Voltage voltageDecreasePerIteration = (- 600 - beginVCE) / (int) nPoints;
     Graph::maxX = 0;
-    Graph::minX = 0.5 * beginVCE;
+    Graph::minX = - 0.5 * beginVCE;
     Graph::maxYCurrent = 0;
     MeasureResult collector, emitter;
     for (unsigned int i = 0; i < nPoints; ++i) {
-        pinout.first->setVoltage(beginVCE - voltageDecreasePerIteration * i);
+        pinout.first->setVoltage(1000 - beginVCE + voltageDecreasePerIteration * i);
         baseCurrent = pinout.second->readAverageCurrent(5);
         while (baseCurrent > 55) {
             pinout.second->increaseVoltage();
@@ -357,8 +357,12 @@ void BjtPnp::generateVbeIcGraph(unsigned int nPoints, unsigned int nSamplesPerPo
         emitter = pinout.third->doFullMeasure(nSamplesPerPoint);
         // controleren of VBE nu niet lager ligt dan het voorgaande punt (kan voorkomen indien collector stroom zorgt voor daling in spanning over BJT door toename spanning over weerstanden in de kring)
         // indien dit het geval is, wordt deze iteratie overgeslagen
-        if (index > 0 && Graph::graphCurrent[0].data[index - 1].x > base.avgV - emitter.avgV) {
+        if (index > 0 && Graph::graphCurrent[0].data[index - 1].x > emitter.avgV - base.avgV) {
             continue;
+        }
+        // controleren of de stroom nog niet is omgeslaan, indien dit het geval is, is er een maxima bereikt, en mag er gestopt worden met meten
+        if (index > 10 && collector.avgA < 0) {
+            break;
         }
         // data opslaan
         Graph::graphCurrent[0].data[index].x = emitter.avgV - base.avgV;
