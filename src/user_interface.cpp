@@ -22,7 +22,7 @@
 
 void destroy();
 void determineType();
-// flags used in the seperate thread
+// verschillende vlaggen, voornamelijk in de tweede thread gebruikt
 bool determenRequested = false, measurementRequested = false, programAlive = false, calibrationRequested = false, saveRequested = false;
 
 struct CalibrationDialog {
@@ -79,10 +79,10 @@ bool MeasureProperties::shouldSampleVoltage = false;
 
 const char* MeasureProperties::sampleVoltageButtonLabel = "sample_voltage";
 
-// everything in this struct is static, so the lambda can have a reference
-// to its members without needing "this" in its capture list
-// there will always be only 1 GraphWindow visible, so it doesn't change
-// the rest of the functionality
+// alles in deze struct is statisch, aangezien deze regelmatig in labmda's worden gebruikt
+// (capturelists zijn niet compatibel met oudere C-code, terwijl deze omzetting wel cruciaal
+// is voor de werking). Dit heeft geen impact op de werking zelf, aangezien er maar 1 scherm
+// zichtbaar is
 struct GraphWindow {
     static GtkWidget* self;
     static GtkLabel* yLabelsLeft[9],* yLabelsRight[9];
@@ -468,7 +468,6 @@ extern "C" {
     G_MODULE_EXPORT
     #endif
     void measurefirst(GtkWidget* widget, gpointer user_data) {
-        // TODO use current component to determine correct graph type for NMOS/PMOS/JFET/...
         Graph::graphType = GraphType::IB_IC;
         measurementRequested = true;
     }
@@ -476,7 +475,6 @@ extern "C" {
     G_MODULE_EXPORT
     #endif
     void measuresecond(GtkWidget* widget, gpointer user_data) {
-        // TODO use current component to determine correct graph type for NMOS/PMOS/JFET/...
         Graph::graphType = GraphType::VCE_IC;
         measurementRequested = true;
     }
@@ -484,7 +482,6 @@ extern "C" {
     G_MODULE_EXPORT
     #endif
     void measurethird(GtkWidget* widget, gpointer user_data) {
-        // TODO use current component to determine correct graph type for NMOS/PMOS/JFET/...
         Graph::graphType = GraphType::VBE_IC;
         measurementRequested = true;
     }
@@ -576,38 +573,36 @@ void determineType() {
     DUTInformation dut;
     delete Component::currentComponent;
     Component::currentComponent = nullptr;
-    // check if DUT is a BJT NPN transistor
+    // controleer indien DUT een BJT NPN is
     dut = BjtNpn::checkIfNPN();
     if (dut.isSuggestedType) {
         Component::type = BJT_NPN;
         Component::currentComponent = new BjtNpn(dut.orientation);
         return;
     }
-    // check if DUT is a BJT PNP transistor
+    // controleer indien DUT een BJT PNP is
     dut = BjtPnp::checkIfPNP();
     if (dut.isSuggestedType) {
         Component::type = BJT_PNP;
         Component::currentComponent = new BjtPnp(dut.orientation);
         return;
     }
-    // check if DUT is a diode
+    // controleer indien DUT een diode is
     dut = Diode::checkIfDiode();
     if (dut.isSuggestedType) {
         Component::type = DIODE;
         Component::currentComponent = new Diode(dut.orientation);
         return;
     }
-    // check if DUT is a resistor
+    // controleer indien DUT een weerstand is
     dut = Resistor::checkIfResistor();
     if (dut.isSuggestedType) {
         Component::type = RESISTOR;
         Component::currentComponent = new Resistor(dut.orientation);
         return;
     }
-    // check if DUT is a capacitor
-    //TODO
-
-    //TODO MOSFET_NMOS, MOSFET_PMOS, MOSFET_JFET
+    // nu zou er eventueel nog kunnen gecontroleerd kunnen worden op condensatoren en verschillende MOS-transistoren
+    // maar dit werd niet meer geïmplementeerd
     Component::type = UNKNOWN_DEVICE;
 }
 
@@ -615,7 +610,7 @@ void UserInterface::init(int* argc, char *** argv) {
     // start probes
     Probe::init();
 
-    // init GUI
+    // GUI opbouwen
     GtkBuilder* builder;
     GtkWidget* window;
     #ifndef WINDOWS
@@ -626,7 +621,7 @@ void UserInterface::init(int* argc, char *** argv) {
     window = GTK_WIDGET(gtk_builder_get_object(builder, "main_window"));
     gtk_builder_connect_signals(builder, NULL);
 
-    // set top panel pointers
+    // top panel pointers instellen
     mainWindow.topPanel.startButton = GTK_BUTTON(gtk_builder_get_object(builder, "start_measuring"));
 
     for (unsigned char i = 0; i < 2; ++i) {
@@ -656,7 +651,7 @@ void UserInterface::init(int* argc, char *** argv) {
     mainWindow.topPanel.help = GTK_BUTTON(gtk_builder_get_object(builder, "help"));
     mainWindow.topPanel.save = GTK_BUTTON(gtk_builder_get_object(builder, "save"));
 
-    // set bottom panel pointers
+    // bottom panel pointers instellen
     mainWindow.bottomPanel.toggle1 = GTK_BUTTON(gtk_builder_get_object(builder, "toggle_1"));
     mainWindow.bottomPanel.toggle2 = GTK_BUTTON(gtk_builder_get_object(builder, "toggle_2"));
     mainWindow.bottomPanel.toggle3 = GTK_BUTTON(gtk_builder_get_object(builder, "toggle_3"));
@@ -694,7 +689,7 @@ void UserInterface::init(int* argc, char *** argv) {
         gtk_label_set_text(helpDialog.title, titleBuffer);
     }
     
-    // make it so the close button cant be pressed without calibrating first
+    // verschillende "start-up" voorwaarden instellen, zoals het kalibreerscherm niet manueel sluitbaar maken
     gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.dialog_close_button, FALSE);
     mainWindow.topPanel.disableSaveKey();
     mainWindow.disableAllButtons();
@@ -707,7 +702,7 @@ void UserInterface::init(int* argc, char *** argv) {
                     gtk_widget_set_sensitive((GtkWidget*) calibrationDialog.start_button, FALSE);
                     return FALSE;
                 }), NULL);
-                // determine probe offset
+                // probe offset bepalen
                 for (unsigned char i = 0; i < 3; ++i) {
                     Probe::probe[i].setVoltage(0);
                     sleep_ms(10);
@@ -716,12 +711,11 @@ void UserInterface::init(int* argc, char *** argv) {
                         Probe::probe[i].setOffset(error - 1);
                     }
                 }
-                // set shunt
-                // TODO maybe make it more accurate by using known resistors
+                // shunt manueel instellen (kan misschien verbeterd worden voor meer nauwkeurige stroommetingen)
                 Probe::probe[0].setShunt(3.88);
                 Probe::probe[1].setShunt(3.88);
                 Probe::probe[2].setShunt(3.88);
-                // set GUI to indicate probe 1 is getting calibrated
+                // GUI updaten volgens kalibreerstatus
                 g_idle_add(G_SOURCE_FUNC(+[](){gtk_progress_bar_set_text(calibrationDialog.progress_bar, "Kalibreren... Probe 1/3"); return FALSE;}), NULL);
                 segment = 0;
                 Probe::probe[0].calibrate(updateProgress, &segmentProgress);
@@ -793,6 +787,7 @@ void UserInterface::init(int* argc, char *** argv) {
                         mainWindow.topPanel.enableSaveKey();
                         break;
                     }
+                    // onderstaande cases zijn niet geïmplementeerd
                     case MOSFET_NMOS: {
                         // TODO
                         
@@ -883,20 +878,20 @@ void UserInterface::init(int* argc, char *** argv) {
     });
 
     g_object_unref(builder);
-    // enable main screen
+    // hoofdscherm tonen
     gtk_widget_show(window);
-    // show calibration dialog
+    // kalibreerscherm tonen
     gtk_widget_show((GtkWidget*) calibrationDialog.self);
-    // make unused labels invisible
+    // ongebruikte labels verbergen
     gtk_widget_set_opacity((GtkWidget*) mainWindow.bottomPanel.graphWindow.unit0, 0.0);
     gtk_widget_set_opacity((GtkWidget*) mainWindow.bottomPanel.graphWindow.unit3, 0.0);
-    // make graph invisible
+    // grafiekscherm onzichtbaar maken
     mainWindow.bottomPanel.graphWindow.makeCompletelyInvisible();
     Component::type = UNKNOWN_DEVICE;
     Component::currentComponent = nullptr;
     mainWindow.topPanel.component.update();
     mainWindow.topPanel.properties.update();
-    // start gtk functionality
+    // gtk starten
     gtk_main();
 }
 

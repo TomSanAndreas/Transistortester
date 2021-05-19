@@ -8,21 +8,21 @@ DUTInformation Diode::checkIfDiode() {
     DUTInformation result;
     result.isSuggestedType = false;
     for (unsigned char i = 0; i < 6; ++i) {
-        // turn off the third probe
+        // leg de derde probe af
         Probe::combinations[i].third->turnOff();
-        // set the second probe as GND
+        // de tweede probe instellen als grond
         Probe::combinations[i].second->setVoltage(0);
-        // set the first probe as 710mV, if the component is a diode with a lower voltage drop,
-        // there will be a bigger current, but 0.7V is not enough to break a diode when reverse
-        // biased so this should be safe
+        // stel de eerste probe in op 710mV, indien de component een diode is met een lagere spanningsval, dan
+        // is er een grote stroom, maar 0.7V is zeker niet te groot om een diode mee omgekeerd te biasen,
+        // waardoor dit een veilige spanning is om mee te testen
         Probe::combinations[i].first->setVoltage(710);
-        // wait for a short time
+        // kort wachten
         sleep_ms(10);
-        // check if a current flows, with a 5% margin of error
+        // kijk of er aan beide terminals een ongeveer gelijkaardige stroom vloeit (los van het teken) en kijk naar het teken zelf
         Current anodeCurrent = Probe::combinations[i].first->readAverageCurrent(10);
         Current cathodeCurrent = Probe::combinations[i].second->readAverageCurrent(10);
         if (ALMOSTEQUAL(anodeCurrent, cathodeCurrent, 0.05) && anodeCurrent < - 15 && cathodeCurrent > 15) {
-            // check if no current flows in reverse bias
+            // controleer dat er geen stroom vloeit in de tegengestelde zin
             Probe::combinations[i].second->setVoltage(710);
             Probe::combinations[i].first->setVoltage(0);
             sleep_ms(10);
@@ -31,7 +31,7 @@ DUTInformation Diode::checkIfDiode() {
             if (ABS(anodeCurrent) < 2 && ABS(cathodeCurrent) < 2) {
                 result.isSuggestedType = true;
                 result.orientation = Probe::combinations[i];
-                // turn probes off
+                // probes afleggen
                 Probe::combinations[i].first->turnOff();
                 Probe::combinations[i].second->turnOff();
                 return result;
@@ -42,26 +42,26 @@ DUTInformation Diode::checkIfDiode() {
 }
 
 void Diode::measure() {
-    // turn off the third probe
+    // leg de derde probe af
     pinout.third->turnOff();
-    // set the second probe as GND
+    // stel de tweede probe in als grond
     pinout.second->setVoltage(0);
-    // set the first probe as different voltage sources (Schottky - 200mV, Germanium - 250-300mV, Silicon - 600-700mV)
+    // zet de eerste probe als een bepaalde spanningsbron (afhankelijk van het geteste type)
     UVoltage VCC;
     for (unsigned char j = 0; j < 3; ++j) {
         for (unsigned char k = 0; k < 3; ++k) {
             VCC = DiodeType::possibleTypes[j].voltages[k];
             pinout.first->setVoltage(VCC);
-            // wait for a short time
+            // kort wachten
             sleep_ms(10);
-            // check if current flows
+            // kijken indien stroom vloeit
             Current anodeCurrent = pinout.first->readAverageCurrent(10);
             if (anodeCurrent < -1000) {
-                // set properties
+                // eigenschappen instellen
                 forwardVoltage = (((double) pinout.first->readAverageVoltage(10)) - pinout.second->readAverageVoltage(10)) / 1000;
                 forwardCurrent = pinout.second->readAverageCurrent(10) / 1000.0;
                 type = DiodeType::possibleTypes[j];
-                // turn probes off
+                // probes afleggen
                 pinout.first->turnOff();
                 pinout.second->turnOff();
                 return;

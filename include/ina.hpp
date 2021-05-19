@@ -1,15 +1,11 @@
 #pragma once
-// Used current sensor: INA233
-// Datasheet can be found at https://www.ti.com/lit/ds/symlink/ina233.pdf
-// See page 15
+// Gebruikte "stroomsensor": INA233
+// Datasheet is te vinden op https://www.ti.com/lit/ds/symlink/ina233.pdf
+// Zie pagina 15
 
 #include "i2c_device.hpp"
 
-// // for calculation, see page 16
-// // max current is 1 here
-// #define CAL 32768 * 0.00512 / R_SHUNT
-
-// register maps
+// gebruikte registers
 #define MFR_READ_VSHUNT 0xD1
 #define READ_VIN        0x88
 #define READ_IIN        0x89
@@ -28,10 +24,10 @@ class INA : public I2C_Device {
         friend class Probe;
     public:
         float rShunt = 4.0;
-        // result is signed and in µA
+        // resultaat is signed en is uitgedrukt in µA
         Current readCurrent();
-        // result is unsigned and in mV
+        // resultaat is unsigned en is uitgedrukt in mV
         UVoltage readVoltage();
-        // result is signed and in µV
+        // resultaat is signed en is uitgedrukt in µV
         Voltage readShuntVoltage();
 };

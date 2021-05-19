@@ -32,12 +32,6 @@ int main(int argc, char** argv) {
             printf("\t-s, --shell         Deze functionaliteit is niet beschikbaar, zie -s voor meer informatie.\n");
             #endif
             printf("\t<geen argumenten>   Start de grafische interface voor gewoon gebruik.\n");
-        // } else if (strcmp(argv[1], "-k") == 0 || strcmp(argv[1], "--kalibratie") == 0) {
-        //     CalibrationSetup::initClean();
-        //     while (!CalibrationSetup::doneCalibrating) {
-        //         CalibrationSetup::update();
-        //     }
-        //     CalibrationSetup::cleanUp();
         } else {
             printf("Argument %s is niet herkend. Zie <-h, --help> voor meer informatie.\n", argv[1]);
         }

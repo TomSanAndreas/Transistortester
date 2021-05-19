@@ -127,12 +127,6 @@ void initialiseScreen() {
     } else {
         keypad(stdscr, false);
     }
-    // if (terminalBuffer != nullptr) {
-    //     delete[] terminalBuffer;
-    // }
-    // nTerminalLines = 0;
-    // terminalBuffer = new char[(max_y - 12) * (max_x - 7)];
-    // currentIndex = 0;
 
     if (TerminalBuffer::buffer != nullptr) {
         delete[] TerminalBuffer::buffer;
@@ -574,8 +568,6 @@ namespace CalibrationWindow {
         #endif
         if (max_x >= MIN_X && max_y >= MIN_Y) {
             for (uint8_t i = 0; i < 3; ++i) {
-                // move(probeFields[i].dacVoltage.start.y, probeFields[i].dacVoltage.start.x);
-                // printw("DAC: %*d mV", probeFields[i].dacVoltage.length - 8, Probe::probe[i].currentVoltageSet);
                 move(probeFields[i].inaVoltage.start.y, probeFields[i].inaVoltage.start.x);
                 printw("INA: %*d mV", probeFields[i].inaVoltage.length - 8, Probe::probe[i].readVoltage());
                 move(probeFields[i].inaCurrent.start.y, probeFields[i].inaCurrent.start.x);

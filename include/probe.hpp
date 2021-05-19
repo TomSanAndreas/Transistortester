@@ -17,7 +17,7 @@ class Probe {
         DAC dac;
         INA ina;
         Probe(DAC_Address, INA_Address);
-        // this contains the ratio between a bit and x mV, so that 4095 equals VCC
+        // dit bevat de verhouding tussen een bit en een aantal mV, zodanig dat 4095 (12x '1') gelijk is aan VCC
         double voltBitRatio;
         Voltage vOffset = 0;
         UVoltage currentVoltageBitsSet = 0;
@@ -32,37 +32,37 @@ class Probe {
 
         void calibrate(void (*progressIndicator)(), double* progress);
 
-        // sets the DAC to Powerdown mode, causing it to have a big resistance (~500K);
+        // zet de DAC in Powerdown modus, waardoor deze geen spanning/stroom levert en intern doorverbonden is met een weerstand van ~500K
         void turnOff();
 
-        // set a constant offset on the measured voltage in mV
-        // IMPORTANT: use calibrate() to see the full effect of the changes!
+        // stel een *CONSTANTE* offset in op de gemeten spanning
+        // BELANGRIJK: gebruik de calibrate()-functie om het volledig effect hiervan te krijgen!
         void setOffset(Voltage);
         // voltage is in mV
         void setVoltage(UVoltage);
-        // increase the set DAC voltage by exactly 1 bit
+        // laat de DAC precies 1 bit toenemen in spanning
         void increaseVoltage();
-        // decrease the set DAC voltage by exactly 1 bit
+        // laat de DAC precies 1 bit afnemen in spanning
         void decreaseVoltage();
         // newShunt is in Ohm
         void setShunt(float newShunt);
         // expectedCurrent is in µA
         float adjustShuntUsingCurrent(Current expectedCurrent);
         
-        // get shunt voltage in µV
+        // krijg shuntvoltage in µV
         Voltage readShuntVoltage();
-        // read N samples and take average, in µV
+        // lees N samples en bereken het gemiddelde, in µV
         Voltage readAverageShuntVoltage(unsigned int nSamples);
         // voltage is in mV
         UVoltage readVoltage();
-        // read N samples and take average, in mV
+        // lees N samples en bereken het gemiddelde, in mV
         UVoltage readAverageVoltage(unsigned int nSamples);
         // current is in µA
         Current readCurrent();
-        // read N samples and take average, in µA
+        // lees N samples en bereken het gemiddelde, in µA
         Current readAverageCurrent(unsigned int nSamples);
         
-        // get a detailed result, with data from N samples
+        // krijg een compleet resultaat, na N samples
         MeasureResult doFullMeasure(unsigned int nSamples);
 
         // de huidige spanning van de DAC

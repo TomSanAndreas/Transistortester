@@ -25,22 +25,20 @@ Probe::Probe(DAC_Address dac, INA_Address ina)
 , ina(ina) {}
 
 void Probe::calibrate(void (*updateProgress)(), double* progress) {
-    // keep track of the original voltage
+    // huidige spanning bewaren
     UVoltage original = dac.currentVoltage;
-    // fill up LUT as voltage reference during measurements
+    // LUT opvullen met spanningsreferenties tijdens het meten
     for (unsigned int i = 0; i < 4096; ++i) {
         dac.setVoltage(i);
         exactVoltageLUT[i] = readAverageVoltage(3);
-        // update progress
+        // vooruitgang weergeven
         *progress = i / 4096.0;
         updateProgress();
     }
-    // determine voltBitRatio, max voltage is already set in for-loop
-    // get max voltage
+    // voltBitRatio bepalen, maxspanning is al ingesteld via de for-lus
     UVoltage maxVoltage = exactVoltageLUT[4095];
-    // set ratio
     voltBitRatio = ((double) maxVoltage) / 4095;
-    // set the dac back
+    // oorspronkelijke spanning terugzetten
     dac.setVoltage(original);
 }
 
@@ -59,7 +57,7 @@ void Probe::setVoltage(UVoltage newVoltage) {
         isDacTurnedOn = true;
     }
     currentVoltageSet = newVoltage;
-    currentVoltageBitsSet = newVoltage / voltBitRatio + .5; // the addition of 0.5 makes it so x.5 and up would round up when casted to an int
+    currentVoltageBitsSet = newVoltage / voltBitRatio + .5; // de extra .5 helpt bij het afronden juist voor het casten naar int
     dac.setVoltage(currentVoltageBitsSet);
 }
 

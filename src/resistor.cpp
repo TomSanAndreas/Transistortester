@@ -4,22 +4,22 @@ DUTInformation Resistor::checkIfResistor() {
     DUTInformation result;
     result.isSuggestedType = false;
     for (unsigned char i = 0; i < 3; ++i) {
-        // turn off the third probe
+        // derde probe afleggen
         Probe::combinations[i].third->turnOff();
-        // set the second probe as GND
+        // tweede probe als grond instellen
         Probe::combinations[i].second->setVoltage(0);
-        // set the first probe as VCC (1000 mV)
+        // eerste probe als VCC instellen (1V)
         Probe::combinations[i].first->setVoltage(1000);
-        // wait for a short time
+        // kort wachten
         sleep_ms(10);
-        // check if a current can be measured in first & second probe
+        // stromen meten
         Current firstCurrent = Probe::combinations[i].first->readAverageCurrent(10);
         Current secondCurrent = Probe::combinations[i].second->readAverageCurrent(10);
-        // check if current is big enough (max ~20K resistor), with a 1% margin of error
+        // kijken indien de stroom groot genoeg is (max 20K weerstanden ondersteund tegen meetfouten), met maximaal een 1% fout
         if (firstCurrent < -25 && secondCurrent > 25 && ALMOSTEQUAL(firstCurrent, secondCurrent, 0.01)) {
             result.isSuggestedType = true;
             result.orientation = Probe::combinations[i];
-            // turn probes off
+            // probes afleggen
             Probe::combinations[i].first->turnOff();
             Probe::combinations[i].second->turnOff();
             return result;
@@ -29,15 +29,15 @@ DUTInformation Resistor::checkIfResistor() {
 }
 
 void Resistor::measure() {
-    // set with 500K resistor to ground
+    // derde probe afleggen
     pinout.third->turnOff();
-    // set as ground
+    // tweede probe als grond instellen
     pinout.second->setVoltage(0);
-    // set as VCC (1000mV)
+    // eerste probe instellen als bron (1V)
     pinout.first->setVoltage(1000);
-    // short delay
+    // kort wachten
     sleep_ms(10);
-    // measure
+    // meten
     MeasureResult result1 = pinout.first->doFullMeasure(10);
     MeasureResult result2 = pinout.second->doFullMeasure(10);
     resistance = ((double) (result1.avgV - result2.avgV)) * 1000 / result2.avgA;

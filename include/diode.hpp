@@ -4,7 +4,7 @@
 
 struct DiodeType {
     const char* typeName;
-    // min voltage, average voltage, max voltage for the type
+    // min voltage, average voltage, max voltage voor elk type
     UVoltage voltages[3];
     static DiodeType possibleTypes[];
 };

@@ -1,14 +1,9 @@
 #pragma once
-// Used DAC: MCP4276A0T-E/CH, MCP4276A1T-E/CH & MCP4276A2T-E/CH
-// Datasheet can be found at http://www.farnell.com/datasheets/1669523.pdf
-// See page 49
+// Gebruikte DAC: MCP4276A0T-E/CH, MCP4276A1T-E/CH & MCP4276A2T-E/CH
+// Datasheet is te vinden op http://www.farnell.com/datasheets/1669523.pdf
+// Zie pagina 49
 
 #include "i2c_device.hpp"
-
-#ifdef DEBUG_ACTIVE // these values should only be programmed when the debugging is active
-#define MIN_VOLTAGE 10    // 0.01 V
-#define MAX_VOLTAGE 4960  // VCC - 0.04
-#endif
 
 class Probe;
 

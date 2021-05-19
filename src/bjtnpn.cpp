@@ -4,63 +4,61 @@ DUTInformation BjtNpn::checkIfNPN() {
     DUTInformation result;
     result.isSuggestedType = false;
     for (unsigned char i = 0; i < 6; ++i) {
-        // first pin is considered to be the collector, second as base and third as emitter
-        // set emitter as GND, so that VBE = 0.7V
+        // eerste pin wordt als collector verondersteld, tweede als basis en de derde als emitter
+        // we zetten de emitter als grond, zodanig dat VBE = 0.7V
         Probe::combinations[i].third->setVoltage(0);
-        // set base as 700mV, so that VBE = 0.7V
+        // de basispin zetten we op 700mV
         Probe::combinations[i].second->setVoltage(700);
-        // set collector as 500mV, so in case this isnt the collector, more than 700mV cant be across the actual B-E junction
+        // de collector zetten we op 500mV, zodat, indien deze niet de collector zou zijn, niet meer dan 700mV over de werkelijke B-E junctie zou komen
         Probe::combinations[i].first->setVoltage(500);
-        // wait for a short time
+        // kort wachten
         sleep_ms(10);
-        // check if it is a BJT using current measurements
+        // via metingen bepalen of oriëntatie en componenttype herkend worden
         Current baseCurrent = Probe::combinations[i].second->readAverageCurrent(10);
         Current emitterCurrent = Probe::combinations[i].third->readAverageCurrent(10);
         Current collectorCurrent = Probe::combinations[i].first->readAverageCurrent(10);
-        // check if collector + base and emitter current is similar, and the orientation of said currents
+        // som van stromen basis & collector moeten gelijk zijn aan deze van emitter (zonder naar het teken te kijken), en de tekens van de stromen zelf dienen ook te kloppen
         if (ALMOSTEQUAL(ABS(baseCurrent) + ABS(collectorCurrent), emitterCurrent, .05)
         && baseCurrent < -5 && collectorCurrent < -50 && emitterCurrent > 50
         && collectorCurrent < baseCurrent) {
             result.isSuggestedType = true;
-            // now we need to check the orientation: some NPN transistors will conduct in both directions (Collector -> Emitter and vice versa)
-            // to make sure we have the right collector & emitter pins identified, we need to reverse the voltage on both of the pins
-            // and check the beta then
-            // the combination that makes for the biggest beta value identifies the right orientation
+            // nu controleren we de oriëntatie zelf nog een laatste keer, aangezien sommige BJT NPN's geleiden in tegengestelde richting ook
+            // indien dit het geval is, kan er in beide situaties een versterkingsfactor bepaald worden door te kijken naar de verhoudingen van de stromen
+            // en wordt de oriëntatie met de grootste stroomversterking (beta) als de juiste verondersteld
             double firstBeta = collectorCurrent / baseCurrent;
-            // so now we reverse "third" and "first": first pin is considered to be the emitter, third is considered to be the collector
-            // set emitter as GND, so that VBE = 0.7V
+            // die die nu als emitter wordt verondersteld wordt nu grond
             Probe::combinations[i].first->setVoltage(0);
-            // set collector as 500mV, so the transistor can conduct
+            // en die die nu als collector wordt verondersteld is ook opnieuw ingesteld
             Probe::combinations[i].third->setVoltage(500);
-            // wait for a short time
+            // kort wachten
             sleep_ms(10);
-            // check if transistor is actually conducting
+            // kijk of er stroom vloeit
             Current secondBaseCurrent = Probe::combinations[i].second->readAverageCurrent(10);
             if (secondBaseCurrent < -5) {
-                // use the new currents to calculate the other beta
+                // gebruik deze stromen om de nieuwe beta te bepalen
                 double secondBeta = Probe::combinations[i].third->readAverageCurrent(10) / secondBaseCurrent;
                 if (ABS(firstBeta) > ABS(secondBeta)) {
-                    // the original orientation resulted in a bigger beta, so it was right the first time
+                    // oorspronkelijke situatie leverde een grotere stroomversterking op, dus dit was de juiste oriëntatie
                     result.orientation = Probe::combinations[i];
-                    // turn off the probes
+                    // probes afleggen
                     Probe::combinations[i].first->turnOff();
                     Probe::combinations[i].second->turnOff();
                     Probe::combinations[i].third->turnOff();
                     return result;
                 } else {
-                    // the new orientation resulted in a bigger beta, so collector & emitter have to be swapped
+                    // de nieuwe oriëntatie resulteerde in een grotere stroomversterking, dus deze is de juiste
                     result.orientation = 
                     { Probe::combinations[i].third, Probe::combinations[i].second, Probe::combinations[i].first, Probe::combinations[i].thirdPinNumber, Probe::combinations[i].secondPinNumber, Probe::combinations[i].firstPinNumber };
-                    // turn off the probes
+                    // probes afleggen
                     Probe::combinations[i].first->turnOff();
                     Probe::combinations[i].second->turnOff();
                     Probe::combinations[i].third->turnOff();
                     return result;
                 }
             } else {
-                // the original orientation was the only one actually conducting, so this is the right orientation
+                // enkel de oorspronkelijke oriëntatie geleidde, en is dus de enige juiste
                 result.orientation = Probe::combinations[i];
-                // turn off the probes
+                // probes afleggen
                 Probe::combinations[i].first->turnOff();
                 Probe::combinations[i].second->turnOff();
                 Probe::combinations[i].third->turnOff();
@@ -119,7 +117,7 @@ do_measure_npn:
         }
     }
     averageBeta /= nMeasures;
-    // check if accurate enough, if not, measure again
+    // kijk indien deze accuraat genoeg zijn, indien dit niet het geval is kan het opnieuw geprobeerd worden
     if (!(0.5 * averageBeta < minBeta && 1.5 * averageBeta > maxBeta) && attempts < 3) {
         connectionStatus = BadConnection;
         ++attempts;
@@ -200,7 +198,6 @@ void BjtNpn::generateIbIcGraph(unsigned int nPoints, unsigned int nSamplesPerPoi
         Graph::graphVoltage[2].data[0].x = - basisMeting.maxA;
         Graph::graphVoltage[2].data[0].y = collectorMeting.maxV - emitterMeting.maxV;
 
-        // Graph::minYVoltage = Graph::graphVoltage[0].data[0].y;
         Graph::minYVoltage = 0;
         Graph::maxYVoltage = 1.5 * Graph::graphVoltage[0].data[0].y;
     }

@@ -6,7 +6,7 @@
 #include "probe.hpp"
 
 #define ABS(a)	   (((a) < 0) ? -(a) : (a))
-// determine if both values are at least almost equal, only percentage% different max
+// bepaal indien beide waardes maximaal ongeveer gelijk zijn, max een procent% verschil
 #define ALMOSTEQUAL(value1, value2, percentage) (ABS(ABS(value1) - ABS(value2)) < percentage * ABS(value1))
 
 enum ComponentType {
@@ -88,33 +88,3 @@ struct Component {
         ProbeCombination pinout;
         Component(ProbeCombination& p) : pinout(p) {}
 };
-
-
-// OUDE CODE, WORDT LATER NOG GEBRUIKT BIJ HET VERVOLG VAN HET REFACTOREN WANNEER MOSFETS OOK TOEGEVOEGD WORDEN
-
-// struct MosfetNmosData {
-//     double beta;
-//     unsigned int saturationVoltageSourceDrain;
-//     unsigned int saturationVoltageGateDrain;
-//     ProbeCombination gateDrainPins;
-//     ProbeCombination sourceDrainPins;
-//     ProbeCombination sourceGatePins;
-// };
-
-// struct MosfetPmosData {
-//     double beta;
-//     unsigned int saturationVoltageSourceDrain;
-//     unsigned int saturationVoltageGateDrain;
-//     ProbeCombination gateDrainPins;
-//     ProbeCombination sourceDrainPins;
-//     ProbeCombination sourceGatePins;
-// };
-
-// struct MosfetJfetData {
-//     double beta;
-//     unsigned int saturationVoltageSourceDrain;
-//     unsigned int saturationVoltageGateDrain;
-//     ProbeCombination gateDrainPins;
-//     ProbeCombination sourceDrainPins;
-//     ProbeCombination sourceGatePins;
-// };
